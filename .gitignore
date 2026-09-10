@@ -1,0 +1,56 @@
+# -----------------------------------------------
+# Python / Django
+# -----------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables (NEVER commit real .env files)
+.env
+.env.*
+!.env.example
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Celery
+celerybeat-schedule
+
+# -----------------------------------------------
+# IDE
+# -----------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# -----------------------------------------------
+# Testing / coverage / caches
+# -----------------------------------------------
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# -----------------------------------------------
+# OS files
+# -----------------------------------------------
+Thumbs.db
+.DS_Store

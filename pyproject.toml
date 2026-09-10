@@ -1,0 +1,6 @@
+[tool.ruff]
+line-length = 100
+exclude = ["migrations", "README.md", "venv"]
+
+[tool.ruff.format]
+exclude = ["migrations", "README.md", "venv"]

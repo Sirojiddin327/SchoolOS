@@ -1,0 +1,4 @@
+-r base.txt
+
+# PostgreSQL production driver
+psycopg[binary]>=3.3,<4
