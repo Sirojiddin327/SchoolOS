@@ -1,0 +1,159 @@
+from django.contrib.auth import get_user_model
+from rest_framework import serializers
+
+from .models import StudentProfile, TeacherProfile
+
+User = get_user_model()
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "role",
+            "is_staff",
+            "is_active",
+            "date_joined",
+        )
+        read_only_fields = ("id", "role", "is_staff", "is_active", "date_joined")
+
+
+class MeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "role",
+        )
+        read_only_fields = fields
+
+
+class TeacherSerializer(serializers.ModelSerializer):
+    """Director-managed CRUD over a teacher's account + profile in one call."""
+
+    email = serializers.EmailField(source="user.email")
+    first_name = serializers.CharField(source="user.first_name", required=False, allow_blank=True)
+    last_name = serializers.CharField(source="user.last_name", required=False, allow_blank=True)
+    is_active = serializers.BooleanField(source="user.is_active", required=False)
+    password = serializers.CharField(write_only=True, required=False, min_length=8)
+
+    class Meta:
+        model = TeacherProfile
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "is_active",
+            "phone_number",
+            "bio",
+            "password",
+        )
+
+    def validate_email(self, value):
+        queryset = User.objects.filter(email__iexact=value)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.user_id)
+        if queryset.exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    def create(self, validated_data):
+        user_data = validated_data.pop("user")
+        password = validated_data.pop("password", None)
+        if not password:
+            raise serializers.ValidationError({"password": "Required when creating a teacher."})
+        user = User.objects.create_user(
+            username=user_data["email"],
+            email=user_data["email"],
+            password=password,
+            role=User.Role.TEACHER,
+            first_name=user_data.get("first_name", ""),
+            last_name=user_data.get("last_name", ""),
+        )
+        return TeacherProfile.objects.create(user=user, **validated_data)
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop("user", {})
+        password = validated_data.pop("password", None)
+        for attr, value in user_data.items():
+            setattr(instance.user, attr, value)
+        if password:
+            instance.user.set_password(password)
+        instance.user.save()
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+
+class StudentSerializer(serializers.ModelSerializer):
+    """Director-managed CRUD over a student's account + profile in one call."""
+
+    email = serializers.EmailField(source="user.email")
+    first_name = serializers.CharField(source="user.first_name", required=False, allow_blank=True)
+    last_name = serializers.CharField(source="user.last_name", required=False, allow_blank=True)
+    is_active = serializers.BooleanField(source="user.is_active", required=False)
+    password = serializers.CharField(write_only=True, required=False, min_length=8)
+    school_class_name = serializers.CharField(source="school_class.name", read_only=True)
+
+    class Meta:
+        model = StudentProfile
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "is_active",
+            "school_class",
+            "school_class_name",
+            "birth_date",
+            "phone_number",
+            "parent_phone_number",
+            "password",
+        )
+
+    def validate_email(self, value):
+        queryset = User.objects.filter(email__iexact=value)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.user_id)
+        if queryset.exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    def create(self, validated_data):
+        user_data = validated_data.pop("user")
+        password = validated_data.pop("password", None)
+        if not password:
+            raise serializers.ValidationError({"password": "Required when creating a student."})
+        user = User.objects.create_user(
+            username=user_data["email"],
+            email=user_data["email"],
+            password=password,
+            role=User.Role.STUDENT,
+            first_name=user_data.get("first_name", ""),
+            last_name=user_data.get("last_name", ""),
+        )
+        return StudentProfile.objects.create(user=user, **validated_data)
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop("user", {})
+        password = validated_data.pop("password", None)
+        for attr, value in user_data.items():
+            setattr(instance.user, attr, value)
+        if password:
+            instance.user.set_password(password)
+        instance.user.save()
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance

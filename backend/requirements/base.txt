@@ -1,0 +1,22 @@
+# Core
+Django>=6.0,<7
+djangorestframework>=3.18,<4
+
+# Environment & configuration
+django-environ>=0.14,<1
+
+# API
+django-filter>=26.1,<27
+drf-spectacular>=0.30,<1
+django-cors-headers>=4.9,<5
+
+# Auth
+djangorestframework-simplejwt>=5.5,<6
+
+# Telegram bot
+python-telegram-bot>=21,<22
+requests>=2.32,<3
+
+# Background tasks
+celery>=5.6,<6
+redis>=8.1,<9
