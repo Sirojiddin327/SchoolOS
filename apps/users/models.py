@@ -22,3 +22,6 @@ class User(AbstractUser):
 
     def __str__(self) -> str:
         return f"{self.get_full_name() or self.username} <{self.email}>"
+
+
+# salom
