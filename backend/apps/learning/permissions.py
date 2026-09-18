@@ -54,3 +54,48 @@ class IsOptionOwnerOrDirector(permissions.BasePermission):
             return True
         profile = getattr(user, "teacher_profile", None)
         return bool(user.is_teacher and profile and obj.question.test.teacher_id == profile.pk)
+
+
+class IsActivityOwnerOrDirector(permissions.BasePermission):
+    """Same shape as `IsTestOwnerOrDirector`, for `Activity`."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        if request.method in permissions.SAFE_METHODS:
+            return user.is_director or user.is_teacher or user.is_student
+        return user.is_director or user.is_teacher
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if user.is_director:
+            return True
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        profile = getattr(user, "teacher_profile", None)
+        return bool(user.is_teacher and profile and obj.teacher_id == profile.pk)
+
+
+class IsSubmissionOwnerOrDirector(permissions.BasePermission):
+    """Director always; the owning teacher (via `activity.teacher`) for grading;
+    the submitting student may read their own submission.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_authenticated)
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if user.is_director:
+            return True
+        profile = getattr(user, "teacher_profile", None)
+        if user.is_teacher and profile and obj.activity.teacher_id == profile.pk:
+            return True
+        student_profile = getattr(user, "student_profile", None)
+        return bool(
+            request.method in permissions.SAFE_METHODS
+            and student_profile
+            and obj.student_id == student_profile.pk
+        )

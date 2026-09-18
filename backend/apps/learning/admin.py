@@ -1,6 +1,15 @@
 from django.contrib import admin
 
-from .models import Option, Question, Test, TestAnswer, TestAttempt
+from .models import (
+    Activity,
+    ActivityResult,
+    ActivitySubmission,
+    Option,
+    Question,
+    Test,
+    TestAnswer,
+    TestAttempt,
+)
 
 
 class OptionInline(admin.TabularInline):
@@ -49,3 +58,24 @@ class OptionAdmin(admin.ModelAdmin):
     list_display = ("question", "text", "is_correct")
     search_fields = ("text",)
     autocomplete_fields = ("question",)
+
+
+class ActivityResultInline(admin.StackedInline):
+    model = ActivityResult
+    extra = 0
+
+
+@admin.register(Activity)
+class ActivityAdmin(admin.ModelAdmin):
+    list_display = ("title", "activity_type", "subject", "school_class", "teacher", "max_xp", "status")
+    list_filter = ("status", "activity_type", "subject", "school_class")
+    search_fields = ("title",)
+    autocomplete_fields = ("subject", "school_class", "teacher")
+
+
+@admin.register(ActivitySubmission)
+class ActivitySubmissionAdmin(admin.ModelAdmin):
+    list_display = ("activity", "student", "submitted_at")
+    search_fields = ("activity__title", "student__user__email")
+    autocomplete_fields = ("activity", "student")
+    inlines = (ActivityResultInline,)

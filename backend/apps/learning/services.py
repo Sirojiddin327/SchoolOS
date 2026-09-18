@@ -6,7 +6,7 @@ from apps.gamification.services import award_xp
 from apps.notifications.models import Notification
 from apps.notifications.services import notify
 
-from .models import TestAnswer, TestAttempt
+from .models import ActivityResult, ActivitySubmission, TestAnswer, TestAttempt
 
 
 @transaction.atomic
@@ -73,4 +73,57 @@ def notify_class_of_new_test(test) -> None:
             title="Yangi test e'lon qilindi",
             body=f"{test.subject.name}: \"{test.title}\" — endi topshirishingiz mumkin.",
             category=Notification.Category.TEST_PUBLISHED,
+        )
+
+
+@transaction.atomic
+def grade_submission(
+    *, submission: ActivitySubmission, score_percent: float, feedback: str, graded_by
+) -> ActivityResult:
+    """Grades a submission and awards XP for it — same "server computes XP,
+    never trusts a number from the client" rule as `grade_attempt`, except
+    here the score itself is a teacher's judgment call rather than an
+    auto-graded multiple-choice tally.
+    """
+    if hasattr(submission, "result"):
+        raise ValueError("This submission has already been graded.")
+    if not 0 <= score_percent <= 100:
+        raise ValueError("score_percent must be between 0 and 100.")
+
+    xp_awarded = round(submission.activity.max_xp * score_percent / 100)
+
+    result = ActivityResult.objects.create(
+        submission=submission,
+        score_percent=score_percent,
+        xp_awarded=xp_awarded,
+        feedback=feedback,
+        graded_by=graded_by,
+    )
+
+    award_xp(
+        student=submission.student,
+        amount=xp_awarded,
+        source=XPTransaction.Source.ACTIVITY,
+        related_object=submission.activity,
+        reason=f"Activity: {submission.activity.title}",
+    )
+
+    notify(
+        recipient=submission.student.user,
+        title=f"{submission.activity.title} — baholandi",
+        body=f"Siz {score_percent:.0f}% to'plabsiz va {xp_awarded} XP oldingiz.",
+        category=Notification.Category.ACTIVITY_RESULT,
+    )
+
+    return result
+
+
+def notify_class_of_new_activity(activity) -> None:
+    """Tells every student in the class a new activity is available."""
+    for student in activity.school_class.students.select_related("user"):
+        notify(
+            recipient=student.user,
+            title="Yangi topshiriq e'lon qilindi",
+            body=f"{activity.subject.name}: \"{activity.title}\" — endi bajarishingiz mumkin.",
+            category=Notification.Category.ACTIVITY_PUBLISHED,
         )

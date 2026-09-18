@@ -11,6 +11,8 @@ class Notification(TimeStampedModel):
         ATTENDANCE = "ATTENDANCE", _("Attendance")
         TEST_PUBLISHED = "TEST_PUBLISHED", _("Test published")
         TEST_RESULT = "TEST_RESULT", _("Test result")
+        ACTIVITY_PUBLISHED = "ACTIVITY_PUBLISHED", _("Activity published")
+        ACTIVITY_RESULT = "ACTIVITY_RESULT", _("Activity graded")
         XP_EARNED = "XP_EARNED", _("XP earned")
         ACHIEVEMENT_UNLOCKED = "ACHIEVEMENT_UNLOCKED", _("Achievement unlocked")
         STREAK = "STREAK", _("Streak")

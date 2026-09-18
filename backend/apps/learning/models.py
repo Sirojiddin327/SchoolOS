@@ -1,5 +1,6 @@
 from typing import ClassVar
 
+from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -120,3 +121,109 @@ class TestAnswer(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.attempt} — {self.question}"
+
+
+class Activity(TimeStampedModel):
+    """A non-test assignment — the generic slot for whatever gamified thing
+    isn't a multiple-choice `Test`: an assignment, a typing/coding challenge,
+    a sports drill, a practical task, etc. Unlike `Test`, an `Activity` isn't
+    auto-graded — a teacher scores each submission by hand, and XP is still
+    always computed from that score, never entered directly (see
+    `services.grade_submission`).
+    """
+
+    class ActivityType(models.TextChoices):
+        ASSIGNMENT = "ASSIGNMENT", _("Assignment")
+        CHALLENGE = "CHALLENGE", _("Challenge")
+        TYPING = "TYPING", _("Typing")
+        PRACTICAL = "PRACTICAL", _("Practical")
+        SPORTS = "SPORTS", _("Sports")
+
+    class Status(models.TextChoices):
+        DRAFT = "DRAFT", _("Draft")
+        PUBLISHED = "PUBLISHED", _("Published")
+        CLOSED = "CLOSED", _("Closed")
+
+    title = models.CharField(_("title"), max_length=255)
+    description = models.TextField(_("description"), blank=True)
+    subject = models.ForeignKey(
+        "academics.Subject", verbose_name=_("subject"), related_name="activities", on_delete=models.PROTECT
+    )
+    school_class = models.ForeignKey(
+        "schools.SchoolClass", verbose_name=_("class"), related_name="activities", on_delete=models.CASCADE
+    )
+    teacher = models.ForeignKey(
+        "users.TeacherProfile", verbose_name=_("teacher"), related_name="activities", on_delete=models.PROTECT
+    )
+    activity_type = models.CharField(_("activity type"), max_length=20, choices=ActivityType.choices)
+    max_xp = models.PositiveSmallIntegerField(_("maximum XP"), default=100)
+    start_date = models.DateField(_("start date"), null=True, blank=True)
+    end_date = models.DateField(_("end date"), null=True, blank=True)
+    status = models.CharField(_("status"), max_length=20, choices=Status.choices, default=Status.DRAFT)
+
+    class Meta:
+        verbose_name = _("activity")
+        verbose_name_plural = _("activities")
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return self.title
+
+    def is_open_for_submissions(self, today) -> bool:
+        if self.status != self.Status.PUBLISHED:
+            return False
+        if self.start_date and today < self.start_date:
+            return False
+        return not (self.end_date and today > self.end_date)
+
+
+class ActivitySubmission(TimeStampedModel):
+    """One row per (activity, student), ever — same one-shot rule as `TestAttempt`."""
+
+    activity = models.ForeignKey(
+        Activity, verbose_name=_("activity"), related_name="submissions", on_delete=models.CASCADE
+    )
+    student = models.ForeignKey(
+        "users.StudentProfile",
+        verbose_name=_("student"),
+        related_name="activity_submissions",
+        on_delete=models.CASCADE,
+    )
+    content = models.TextField(_("content"), blank=True)
+    attachment = models.FileField(_("attachment"), upload_to="activity_submissions/%Y/%m/", blank=True)
+    submitted_at = models.DateTimeField(_("submitted at"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("activity submission")
+        verbose_name_plural = _("activity submissions")
+        ordering = ("-submitted_at",)
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(fields=["activity", "student"], name="unique_activity_submission"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.student} — {self.activity}"
+
+
+class ActivityResult(TimeStampedModel):
+    """The graded outcome of a submission — kept separate from `ActivitySubmission`
+    so 'what the student sent in' and 'how it was scored' are two auditable things.
+    """
+
+    submission = models.OneToOneField(
+        ActivitySubmission, verbose_name=_("submission"), related_name="result", on_delete=models.CASCADE
+    )
+    score_percent = models.FloatField(_("score (%)"))
+    xp_awarded = models.PositiveSmallIntegerField(_("XP awarded"))
+    feedback = models.TextField(_("feedback"), blank=True)
+    graded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name=_("graded by"), on_delete=models.SET_NULL, null=True
+    )
+    graded_at = models.DateTimeField(_("graded at"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("activity result")
+        verbose_name_plural = _("activity results")
+
+    def __str__(self) -> str:
+        return f"{self.submission} — {self.score_percent}%"

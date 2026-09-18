@@ -11,8 +11,8 @@ from apps.common.testing import (
 )
 from apps.gamification.models import XPTransaction
 
-from .models import Option, Question, Test, TestAttempt
-from .services import grade_attempt
+from .models import Activity, ActivitySubmission, Option, Question, Test, TestAttempt
+from .services import grade_attempt, grade_submission
 
 
 def _make_two_question_test(*, teacher, subject, school_class, max_xp=100):
@@ -200,3 +200,149 @@ class TestSubmitAPITests(APITestCase):
         self.client.force_authenticate(self.teacher_user)
         teacher_response = self.client.get("/api/tests/")
         self.assertEqual(teacher_response.data["count"], 1)
+
+
+class GradeSubmissionTests(TestCase):
+    def setUp(self):
+        self.subject = make_subject()
+        self.teacher_user, self.teacher = make_teacher()
+        self.school_class = make_school_class()
+        self.student_user, self.student = make_student(self.school_class)
+        self.activity = Activity.objects.create(
+            title="100m yugurish",
+            subject=self.subject,
+            school_class=self.school_class,
+            teacher=self.teacher,
+            activity_type=Activity.ActivityType.SPORTS,
+            max_xp=50,
+        )
+
+    def _submission(self):
+        return ActivitySubmission.objects.create(
+            activity=self.activity, student=self.student, content="14.2 soniya"
+        )
+
+    def test_xp_awarded_matches_score_percent_of_max_xp(self):
+        result = grade_submission(
+            submission=self._submission(), score_percent=90, feedback="Yaxshi", graded_by=self.teacher_user
+        )
+        self.assertEqual(result.xp_awarded, 45)
+
+    def test_awards_xp_to_student_and_class(self):
+        grade_submission(
+            submission=self._submission(), score_percent=100, feedback="", graded_by=self.teacher_user
+        )
+        self.student.refresh_from_db()
+        self.school_class.refresh_from_db()
+        self.assertEqual(self.student.total_xp, 50)
+        self.assertEqual(self.school_class.total_xp, 50)
+
+    def test_creates_an_auditable_xp_transaction(self):
+        grade_submission(
+            submission=self._submission(), score_percent=50, feedback="", graded_by=self.teacher_user
+        )
+        transaction = XPTransaction.objects.get(student=self.student)
+        self.assertEqual(transaction.source, XPTransaction.Source.ACTIVITY)
+        self.assertEqual(transaction.related_object, self.activity)
+
+    def test_cannot_grade_the_same_submission_twice(self):
+        submission = self._submission()
+        grade_submission(submission=submission, score_percent=50, feedback="", graded_by=self.teacher_user)
+        with self.assertRaises(ValueError):
+            grade_submission(submission=submission, score_percent=80, feedback="", graded_by=self.teacher_user)
+
+    def test_out_of_range_score_is_rejected(self):
+        with self.assertRaises(ValueError):
+            grade_submission(
+                submission=self._submission(), score_percent=150, feedback="", graded_by=self.teacher_user
+            )
+
+
+class ActivityAPITests(APITestCase):
+    def setUp(self):
+        self.subject = make_subject()
+        self.teacher_user, self.teacher = make_teacher()
+        self.school_class = make_school_class()
+        self.student_user, self.student = make_student(self.school_class)
+        self.activity = Activity.objects.create(
+            title="Loyiha topshirig'i",
+            subject=self.subject,
+            school_class=self.school_class,
+            teacher=self.teacher,
+            activity_type=Activity.ActivityType.ASSIGNMENT,
+            max_xp=100,
+        )
+
+    def test_draft_activity_is_invisible_to_students(self):
+        self.client.force_authenticate(self.student_user)
+        response = self.client.get(f"/api/activities/{self.activity.id}/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_student_can_submit_after_publish(self):
+        self.client.force_authenticate(self.teacher_user)
+        publish_response = self.client.post(f"/api/activities/{self.activity.id}/publish/")
+        self.assertEqual(publish_response.status_code, status.HTTP_200_OK)
+
+        self.client.force_authenticate(self.student_user)
+        submit_response = self.client.post(
+            f"/api/activities/{self.activity.id}/submit/", {"content": "Bajarildi"}, format="json"
+        )
+        self.assertEqual(submit_response.status_code, status.HTTP_201_CREATED)
+
+    def test_student_cannot_submit_twice(self):
+        self.activity.status = Activity.Status.PUBLISHED
+        self.activity.save()
+        self.client.force_authenticate(self.student_user)
+        payload = {"content": "Bajarildi"}
+        self.client.post(f"/api/activities/{self.activity.id}/submit/", payload, format="json")
+        second = self.client.post(f"/api/activities/{self.activity.id}/submit/", payload, format="json")
+        self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_empty_submission_is_rejected(self):
+        self.activity.status = Activity.Status.PUBLISHED
+        self.activity.save()
+        self.client.force_authenticate(self.student_user)
+        response = self.client.post(f"/api/activities/{self.activity.id}/submit/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_teacher_can_grade_via_api(self):
+        self.activity.status = Activity.Status.PUBLISHED
+        self.activity.save()
+        submission = ActivitySubmission.objects.create(
+            activity=self.activity, student=self.student, content="Bajarildi"
+        )
+
+        self.client.force_authenticate(self.teacher_user)
+        response = self.client.post(
+            f"/api/activity-submissions/{submission.id}/grade/",
+            {"score_percent": 80, "feedback": "Zo'r!"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["result"]["xp_awarded"], 80)
+
+    def test_unrelated_teacher_cannot_grade(self):
+        self.activity.status = Activity.Status.PUBLISHED
+        self.activity.save()
+        submission = ActivitySubmission.objects.create(
+            activity=self.activity, student=self.student, content="Bajarildi"
+        )
+        other_teacher_user, _other_teacher_profile = make_teacher()
+
+        self.client.force_authenticate(other_teacher_user)
+        response = self.client.post(
+            f"/api/activity-submissions/{submission.id}/grade/", {"score_percent": 80}, format="json"
+        )
+        self.assertIn(response.status_code, (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND))
+
+    def test_student_cannot_see_another_students_submission(self):
+        self.activity.status = Activity.Status.PUBLISHED
+        self.activity.save()
+        submission = ActivitySubmission.objects.create(
+            activity=self.activity, student=self.student, content="Bajarildi"
+        )
+        other_student_user, _other_student = make_student(self.school_class)
+
+        self.client.force_authenticate(other_student_user)
+        response = self.client.get(f"/api/activity-submissions/{submission.id}/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
