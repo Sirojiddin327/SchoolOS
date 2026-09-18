@@ -356,3 +356,10 @@ export interface Streak {
   longest_streak: number;
   last_activity_date: string | null;
 }
+
+export interface MyRank {
+  rank: number;
+  total_students: number;
+  class_rank: number | null;
+  total_classes: number;
+}

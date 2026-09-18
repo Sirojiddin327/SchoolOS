@@ -1,11 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { Badge } from "../../components/Badge";
 import { PrimaryButton } from "../../components/form";
 import { ErrorState, LoadingState } from "../../components/states";
 import { api } from "../../lib/api";
-import type { TestAttempt, TestDetail } from "../../types";
+import { useAuth } from "../../lib/auth";
+import { getLevelInfo } from "../../lib/gamification";
+import { useCountUp } from "../../lib/useCountUp";
+import type { Achievement, TestAttempt, TestDetail } from "../../types";
 
 function useCountdown(startedAt: string | undefined, timeLimitMinutes: number | null | undefined) {
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -27,9 +31,26 @@ function useCountdown(startedAt: string | undefined, timeLimitMinutes: number | 
 
 export function StudentTestTakingPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [error, setError] = useState<string | null>(null);
+  const [leveledUp, setLeveledUp] = useState(false);
+  const [newlyUnlocked, setNewlyUnlocked] = useState<Achievement[]>([]);
+
+  const beforeXpRef = useRef(user?.total_xp ?? 0);
+  const beforeUnlockedIdsRef = useRef<Set<number> | null>(null);
+
+  useEffect(() => {
+    api
+      .get<Achievement[]>("/achievements/")
+      .then(({ data }) => {
+        beforeUnlockedIdsRef.current = new Set(data.filter((a) => a.unlocked).map((a) => a.id));
+      })
+      .catch(() => {
+        beforeUnlockedIdsRef.current = new Set();
+      });
+  }, []);
 
   const { data: test, isLoading, isError } = useQuery({
     queryKey: ["test", id],
@@ -61,8 +82,23 @@ export function StudentTestTakingPage() {
           })),
         })
       ).data,
-    onSuccess: () => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ["my-attempts"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+
+      const afterXp = beforeXpRef.current + (result.xp_awarded ?? 0);
+      setLeveledUp(getLevelInfo(beforeXpRef.current).level !== getLevelInfo(afterXp).level);
+
+      const beforeIds = beforeUnlockedIdsRef.current;
+      if (beforeIds) {
+        try {
+          const { data: afterAchievements } = await api.get<Achievement[]>("/achievements/");
+          setNewlyUnlocked(afterAchievements.filter((a) => a.unlocked && !beforeIds.has(a.id)));
+        } catch {
+          // Achievement-unlock celebration is a nice-to-have — a failed refetch
+          // here should never block showing the student their test result.
+        }
+      }
     },
     onError: (err: unknown) => {
       const detail = (err as { response?: { data?: unknown } })?.response?.data;
@@ -76,18 +112,7 @@ export function StudentTestTakingPage() {
   const finished = submitMutation.data ?? (attempt?.status === "SUBMITTED" ? attempt : null);
 
   if (finished) {
-    return (
-      <div className="mx-auto max-w-lg space-y-4 text-center">
-        <h1 className="text-xl font-bold text-slate-900">{test.title}</h1>
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8">
-          <p className="text-4xl font-bold text-emerald-700">{finished.score_percent?.toFixed(0)}%</p>
-          <p className="mt-2 text-sm text-emerald-700">+{finished.xp_awarded} XP qo'lga kiritdingiz!</p>
-        </div>
-        <Link to="/student/tests" className="text-sm font-medium text-brand-600 hover:underline">
-          ← Testlar ro'yxatiga qaytish
-        </Link>
-      </div>
-    );
+    return <TestResult test={test} finished={finished} leveledUp={leveledUp} newlyUnlocked={newlyUnlocked} />;
   }
 
   const allAnswered = test.questions.every((q) => answers[q.id] !== undefined);
@@ -152,6 +177,57 @@ export function StudentTestTakingPage() {
           {submitMutation.isPending ? "Yuborilmoqda..." : "Testni yakunlash"}
         </PrimaryButton>
       </form>
+    </div>
+  );
+}
+
+function TestResult({
+  test,
+  finished,
+  leveledUp,
+  newlyUnlocked,
+}: {
+  test: TestDetail;
+  finished: TestAttempt;
+  leveledUp: boolean;
+  newlyUnlocked: Achievement[];
+}) {
+  const animatedXp = useCountUp(finished.xp_awarded ?? 0, { startFrom: 0 });
+  const animatedScore = useCountUp(Math.round(finished.score_percent ?? 0), { startFrom: 0 });
+
+  return (
+    <div className="mx-auto max-w-lg space-y-4 text-center">
+      <h1 className="text-xl font-bold text-slate-900">{test.title}</h1>
+
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8">
+        <p className="text-4xl font-bold tabular-nums text-emerald-700">{animatedScore}%</p>
+        <p className="mt-2 text-sm text-emerald-700">+{animatedXp} XP qo'lga kiritdingiz!</p>
+      </div>
+
+      {leveledUp && (
+        <div className="animate-pop-in rounded-xl border border-brand-200 bg-brand-50 p-5">
+          <p className="text-2xl">🎉</p>
+          <p className="mt-1 font-semibold text-brand-700">Yangi darajaga chiqdingiz!</p>
+        </div>
+      )}
+
+      {newlyUnlocked.map((achievement, index) => (
+        <div
+          key={achievement.id}
+          className="animate-pop-in flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left"
+          style={{ animationDelay: `${(index + 1) * 120}ms` }}
+        >
+          <span className="text-2xl">{achievement.icon || "🏆"}</span>
+          <div>
+            <Badge tone="amber">Yangi yutuq</Badge>
+            <p className="mt-1 font-medium text-slate-900">{achievement.name}</p>
+          </div>
+        </div>
+      ))}
+
+      <Link to="/student/tests" className="inline-block text-sm font-medium text-brand-600 hover:underline">
+        ← Testlar ro'yxatiga qaytish
+      </Link>
     </div>
   );
 }

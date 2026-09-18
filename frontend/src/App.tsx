@@ -39,7 +39,7 @@ import { DashboardLayout } from "./routes/DashboardLayout";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
 const DIRECTOR_NAV = [
-  { to: "/director", label: "Dashboard" },
+  { to: "/director", label: "Dashboard", end: true },
   { to: "/director/students", label: "Students" },
   { to: "/director/teachers", label: "Teachers" },
   { to: "/director/classes", label: "Classes" },
@@ -56,7 +56,7 @@ const DIRECTOR_NAV = [
 ];
 
 const TEACHER_NAV = [
-  { to: "/teacher", label: "Dashboard" },
+  { to: "/teacher", label: "Dashboard", end: true },
   { to: "/teacher/classes", label: "My Classes" },
   { to: "/teacher/lessons", label: "My Lessons" },
   { to: "/teacher/attendance", label: "Attendance" },
@@ -68,7 +68,7 @@ const TEACHER_NAV = [
 ];
 
 const STUDENT_NAV = [
-  { to: "/student", label: "Dashboard" },
+  { to: "/student", label: "Dashboard", end: true },
   { to: "/student/class", label: "My Class" },
   { to: "/student/lessons", label: "My Lessons" },
   { to: "/student/attendance", label: "My Attendance" },
