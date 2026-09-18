@@ -24,6 +24,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class MeSerializer(serializers.ModelSerializer):
+    total_xp = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = (
@@ -34,8 +36,13 @@ class MeSerializer(serializers.ModelSerializer):
             "last_name",
             "role",
             "must_change_password",
+            "total_xp",
         )
         read_only_fields = fields
+
+    def get_total_xp(self, obj) -> int | None:
+        profile = getattr(obj, "student_profile", None)
+        return profile.total_xp if profile else None
 
 
 class ChangePasswordSerializer(serializers.Serializer):

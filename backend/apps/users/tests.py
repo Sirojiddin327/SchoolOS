@@ -161,3 +161,20 @@ class ChangePasswordAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.user.refresh_from_db()
         self.assertTrue(self.user.must_change_password)
+
+
+class MeEndpointTests(APITestCase):
+    def test_student_sees_their_total_xp(self):
+        student_user, profile = make_student()
+        profile.total_xp = 42
+        profile.save()
+
+        self.client.force_authenticate(student_user)
+        response = self.client.get("/api/auth/me/")
+
+        self.assertEqual(response.data["total_xp"], 42)
+
+    def test_non_student_has_no_total_xp(self):
+        self.client.force_authenticate(make_director())
+        response = self.client.get("/api/auth/me/")
+        self.assertIsNone(response.data["total_xp"])
