@@ -31,6 +31,11 @@ class User(AbstractUser):
         choices=Role.choices,
         default=Role.STUDENT,
     )
+    must_change_password = models.BooleanField(
+        _("must change password"),
+        default=False,
+        help_text=_("Set when a temporary password was issued (e.g. bulk import)."),
+    )
 
     objects = UserManager()
 

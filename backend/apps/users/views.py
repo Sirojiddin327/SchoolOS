@@ -1,15 +1,27 @@
+from dataclasses import asdict
 from typing import ClassVar
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import RetrieveAPIView
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.common.permissions import IsDirector, IsDirectorOrReadOnly
 
+from . import services
 from .models import StudentProfile, TeacherProfile
-from .serializers import MeSerializer, StudentSerializer, TeacherSerializer, UserSerializer
+from .serializers import (
+    ChangePasswordSerializer,
+    MeSerializer,
+    StudentSerializer,
+    TeacherSerializer,
+    UserSerializer,
+)
 
 User = get_user_model()
 
@@ -70,3 +82,47 @@ class StudentViewSet(viewsets.ModelViewSet):
         if user.is_student:
             return queryset.filter(pk=user.student_profile.pk)
         return queryset.none()
+
+
+class BulkImportStudentsView(APIView):
+    """Director-only: upload a CSV/XLSX of students and get back the created
+    accounts' login credentials (temporary passwords are shown here exactly
+    once — they're never stored in plaintext or returned again afterwards).
+    """
+
+    permission_classes: ClassVar[list[type[BasePermission]]] = [IsDirector]
+    parser_classes: ClassVar[list[type]] = [MultiPartParser]
+
+    def post(self, request):
+        file_obj = request.FILES.get("file")
+        if file_obj is None:
+            raise ValidationError({"file": "This field is required."})
+
+        result = services.bulk_import_students(file_obj)
+
+        return Response(
+            {
+                "created_count": len(result.created),
+                "error_count": len(result.errors),
+                "created": [asdict(item) for item in result.created],
+                "errors": result.errors,
+            }
+        )
+
+
+class ChangePasswordView(APIView):
+    """Lets any authenticated user set a new password — used to satisfy
+    `must_change_password` after a temporary/bulk-imported password.
+    """
+
+    permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        user.set_password(serializer.validated_data["new_password"])
+        user.must_change_password = False
+        user.save(update_fields=["password", "must_change_password"])
+        return Response({"detail": "Password updated."})
