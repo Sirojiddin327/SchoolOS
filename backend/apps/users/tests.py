@@ -1,7 +1,9 @@
 import io
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from openpyxl import Workbook
+from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -9,6 +11,12 @@ from apps.common.testing import make_director, make_school_class, make_student, 
 
 from . import services
 from .models import StudentProfile, User
+
+
+def _png_file(name: str = "avatar.png") -> SimpleUploadedFile:
+    buffer = io.BytesIO()
+    Image.new("RGB", (4, 4), color="red").save(buffer, format="PNG")
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
 
 
 def _csv_file(content: str) -> io.BytesIO:
@@ -178,6 +186,44 @@ class MeEndpointTests(APITestCase):
         self.client.force_authenticate(make_director())
         response = self.client.get("/api/auth/me/")
         self.assertIsNone(response.data["total_xp"])
+
+
+class AvatarAPITests(APITestCase):
+    def setUp(self):
+        self.user, _profile = make_student()
+
+    def test_upload_sets_avatar_url_on_me(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.post("/api/auth/avatar/", {"avatar": _png_file()}, format="multipart")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(response.data["avatar_url"])
+
+        me = self.client.get("/api/auth/me/")
+        self.assertIsNotNone(me.data["avatar_url"])
+
+    def test_uploading_again_replaces_the_previous_file(self):
+        self.client.force_authenticate(self.user)
+        self.client.post("/api/auth/avatar/", {"avatar": _png_file("first.png")}, format="multipart")
+        self.user.refresh_from_db()
+        first_name = self.user.avatar.name
+
+        self.client.post("/api/auth/avatar/", {"avatar": _png_file("second.png")}, format="multipart")
+        self.user.refresh_from_db()
+        self.assertNotEqual(self.user.avatar.name, first_name)
+        self.user.avatar.delete(save=True)
+
+    def test_non_image_upload_is_rejected(self):
+        self.client.force_authenticate(self.user)
+        bogus = SimpleUploadedFile("not-an-image.txt", b"just text", content_type="text/plain")
+        response = self.client.post("/api/auth/avatar/", {"avatar": bogus}, format="multipart")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_delete_clears_the_avatar(self):
+        self.client.force_authenticate(self.user)
+        self.client.post("/api/auth/avatar/", {"avatar": _png_file()}, format="multipart")
+        response = self.client.delete("/api/auth/avatar/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data["avatar_url"])
 
 
 class StudentSerializerTests(APITestCase):

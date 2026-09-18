@@ -23,3 +23,6 @@ redis>=8.1,<9
 
 # Bulk student import (.xlsx)
 openpyxl>=3.1,<4
+
+# Avatar uploads (ImageField validation)
+Pillow>=12.3,<13

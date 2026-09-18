@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "../../components/Badge";
@@ -90,7 +91,7 @@ function GradeForm({ submission, onDone }: { submission: ActivitySubmission; onD
       <Field label="Fikr-mulohaza">
         <Input value={feedback} onChange={(e) => setFeedback(e.target.value)} className="w-56" />
       </Field>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       <PrimaryButton type="submit" disabled={grade.isPending}>
         {grade.isPending ? "Baholanmoqda..." : "Baholash"}
       </PrimaryButton>
@@ -113,7 +114,7 @@ function ActivityManager({ activity }: { activity: ActivitySummary }) {
   });
 
   return (
-    <div className="space-y-4 border-t border-slate-100 px-5 py-4">
+    <div className="space-y-4 border-t border-slate-100 px-5 py-4 dark:border-slate-800">
       <div className="flex flex-wrap gap-2">
         {activity.status === "DRAFT" && (
           <SecondaryButton onClick={() => changeStatus.mutate("publish")} disabled={changeStatus.isPending}>
@@ -128,7 +129,7 @@ function ActivityManager({ activity }: { activity: ActivitySummary }) {
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-slate-700">
+        <h3 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
           Topshirilganlar ({submissions?.length ?? 0})
         </h3>
         {!submissions && <LoadingState label="Yuklanmoqda..." />}
@@ -136,27 +137,28 @@ function ActivityManager({ activity }: { activity: ActivitySummary }) {
         {submissions && submissions.length > 0 && (
           <div className="space-y-2">
             {submissions.map((submission) => (
-              <div key={submission.id} className="rounded-lg border border-slate-200 p-3">
+              <div key={submission.id} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-slate-800">{submission.student_name}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{submission.student_name}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
                     {new Date(submission.submitted_at).toLocaleString("uz-UZ")}
                   </p>
                 </div>
-                {submission.content && <p className="mt-1 text-sm text-slate-600">{submission.content}</p>}
+                {submission.content && <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{submission.content}</p>}
                 {submission.attachment && (
                   <a
                     href={submission.attachment}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-1 inline-block text-sm text-brand-600 hover:underline"
+                    className="mt-1 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400"
                   >
                     Ilova faylni ko'rish
                   </a>
                 )}
                 {submission.result ? (
-                  <p className="mt-2 text-sm font-medium text-emerald-700">
-                    ✅ {submission.result.score_percent.toFixed(0)}% • {submission.result.xp_awarded} XP
+                  <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 className="h-4 w-4" /> {submission.result.score_percent.toFixed(0)}% •{" "}
+                    {submission.result.xp_awarded} XP
                   </p>
                 ) : (
                   <GradeForm submission={submission} onDone={refetch} />
@@ -215,7 +217,7 @@ export function TeacherActivitiesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900">Topshiriqlar</h1>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Topshiriqlar</h1>
         <PrimaryButton onClick={() => setModalOpen(true)}>+ Topshiriq yaratish</PrimaryButton>
       </div>
 
@@ -226,14 +228,14 @@ export function TeacherActivitiesPage() {
       {activities && activities.results.length > 0 && (
         <div className="space-y-3">
           {activities.results.map((activity) => (
-            <div key={activity.id} className="rounded-xl border border-slate-200 bg-white">
+            <div key={activity.id} className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
               <button
                 onClick={() => setExpandedId(expandedId === activity.id ? null : activity.id)}
                 className="flex w-full items-center justify-between px-5 py-4 text-left"
               >
                 <div>
-                  <p className="font-semibold text-slate-900">{activity.title}</p>
-                  <p className="text-sm text-slate-500">
+                  <p className="font-semibold text-slate-900 dark:text-slate-50">{activity.title}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     {activity.subject_name} · {activity.school_class_name} ·{" "}
                     {activity.submission_count} ta topshirildi · maks {activity.max_xp} XP
                   </p>
@@ -337,7 +339,7 @@ export function TeacherActivitiesPage() {
                 />
               </Field>
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <SecondaryButton type="button" onClick={() => setModalOpen(false)}>
                 Bekor qilish

@@ -122,7 +122,7 @@ def check_achievements(student) -> list[StudentAchievement]:
         newly_unlocked.append(student_achievement)
         notify(
             recipient=student.user,
-            title=f"Yutuq ochildi: {achievement.name} {achievement.icon}".strip(),
+            title=f"Yutuq ochildi: {achievement.name}",
             body=achievement.description,
             category=Notification.Category.ACHIEVEMENT_UNLOCKED,
         )

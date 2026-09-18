@@ -36,6 +36,7 @@ class User(AbstractUser):
         default=False,
         help_text=_("Set when a temporary password was issued (e.g. bulk import)."),
     )
+    avatar = models.ImageField(_("avatar"), upload_to="avatars/", null=True, blank=True)
 
     objects = UserManager()
 

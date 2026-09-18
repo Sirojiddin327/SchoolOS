@@ -25,6 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MeSerializer(serializers.ModelSerializer):
     total_xp = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -37,12 +38,20 @@ class MeSerializer(serializers.ModelSerializer):
             "role",
             "must_change_password",
             "total_xp",
+            "avatar_url",
         )
         read_only_fields = fields
 
     def get_total_xp(self, obj) -> int | None:
         profile = getattr(obj, "student_profile", None)
         return profile.total_xp if profile else None
+
+    def get_avatar_url(self, obj) -> str | None:
+        if not obj.avatar:
+            return None
+        request = self.context.get("request")
+        url = obj.avatar.url
+        return request.build_absolute_uri(url) if request else url
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -53,6 +62,22 @@ class ChangePasswordSerializer(serializers.Serializer):
         user = self.context["request"].user
         if not user.check_password(value):
             raise serializers.ValidationError("Current password is incorrect.")
+        return value
+
+
+MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024
+
+
+class AvatarSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(required=True)
+
+    class Meta:
+        model = User
+        fields = ("avatar",)
+
+    def validate_avatar(self, value):
+        if value.size > MAX_AVATAR_SIZE_BYTES:
+            raise serializers.ValidationError("Image must be 5MB or smaller.")
         return value
 
 

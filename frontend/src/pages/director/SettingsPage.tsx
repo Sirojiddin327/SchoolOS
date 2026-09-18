@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Field, Input, PrimaryButton } from "../../components/form";
@@ -54,7 +55,7 @@ export function SettingsPage() {
 
   return (
     <div className="max-w-md space-y-6">
-      <h1 className="text-xl font-bold text-slate-900">Sozlamalar</h1>
+      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Sozlamalar</h1>
 
       {isLoading && <LoadingState />}
       {isError && <ErrorState />}
@@ -65,11 +66,11 @@ export function SettingsPage() {
             e.preventDefault();
             save.mutate();
           }}
-          className="space-y-4 rounded-xl border border-slate-200 bg-white p-6"
+          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
         >
           <div>
-            <h2 className="font-semibold text-slate-900">Dars vaqti (School Time Lock)</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <h2 className="font-semibold text-slate-900 dark:text-slate-50">Dars vaqti (School Time Lock)</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Shu vaqt oralig'ida o'quvchilar platformadan foydalana olmaydi. Direktor va
               o'qituvchilarga bu cheklov taalluqli emas.
             </p>
@@ -94,8 +95,8 @@ export function SettingsPage() {
           </div>
 
           <div className="pt-2">
-            <h2 className="font-semibold text-slate-900">Dars jadvali vaqtlari</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <h2 className="font-semibold text-slate-900 dark:text-slate-50">Dars jadvali vaqtlari</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Har bir dars va tanaffus necha daqiqa davom etishi. "Darslarni yaratish" tugmasi
               shu qiymatlarga qarab har bir darsning vaqtini hisoblaydi.
             </p>
@@ -143,13 +144,17 @@ export function SettingsPage() {
             <PrimaryButton type="submit" disabled={save.isPending}>
               {save.isPending ? "Saqlanmoqda..." : "Saqlash"}
             </PrimaryButton>
-            {saved && <span className="text-sm text-emerald-600">Saqlandi ✓</span>}
+            {saved && (
+              <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-4 w-4" /> Saqlandi
+              </span>
+            )}
           </div>
         </form>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
-        <h2 className="mb-3 font-semibold text-slate-900">Telegram</h2>
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-3 font-semibold text-slate-900 dark:text-slate-50">Telegram</h2>
         <TelegramConnect />
       </div>
     </div>

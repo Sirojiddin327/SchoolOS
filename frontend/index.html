@@ -3,7 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>SchoolOS</title>
+    <script>
+      // Applied before React mounts so the page never flashes the wrong theme,
+      // and so it never gets caught by a browser's own forced-dark rewriting
+      // (which only applies to pages that don't declare their own scheme).
+      (function () {
+        var stored = localStorage.getItem("schoolos-theme");
+        var dark = stored ? stored === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

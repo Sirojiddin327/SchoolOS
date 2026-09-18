@@ -5,6 +5,7 @@ import { Badge } from "../../components/Badge";
 import { Field, Input, PrimaryButton, Select, SecondaryButton } from "../../components/form";
 import { Modal } from "../../components/Modal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
+import { Table, Tbody, Td, Th, Thead, Tr } from "../../components/table";
 import { api } from "../../lib/api";
 import type { Paginated, SchoolClass, Student } from "../../types";
 
@@ -72,7 +73,7 @@ export function StudentsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900">O'quvchilar</h1>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">O'quvchilar</h1>
         <PrimaryButton onClick={() => setModalOpen(true)}>+ O'quvchi qo'shish</PrimaryButton>
       </div>
 
@@ -83,45 +84,43 @@ export function StudentsPage() {
       )}
 
       {data && data.results.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Ism</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Sinf</th>
-                <th className="px-4 py-3 font-medium">Holat</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data.results.map((student) => (
-                <tr key={student.id}>
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    {student.first_name} {student.last_name}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{student.email}</td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {student.school_class_name ?? "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={student.is_active ? "emerald" : "slate"}>
-                      {student.is_active ? "Faol" : "Faol emas"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => toggleActive.mutate(student)}
-                      className="text-sm font-medium text-brand-600 hover:underline"
-                    >
-                      {student.is_active ? "Faolsizlantirish" : "Faollashtirish"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <Thead>
+            <Tr>
+              <Th>Ism</Th>
+              <Th>Email</Th>
+              <Th>Sinf</Th>
+              <Th>Holat</Th>
+              <Th />
+            </Tr>
+          </Thead>
+          <Tbody>
+            {data.results.map((student) => (
+              <Tr key={student.id}>
+                <Td className="font-medium text-slate-900 dark:text-slate-50">
+                  {student.first_name} {student.last_name}
+                </Td>
+                <Td className="text-slate-600 dark:text-slate-300">{student.email}</Td>
+                <Td className="text-slate-600 dark:text-slate-300">
+                  {student.school_class_name ?? "—"}
+                </Td>
+                <Td>
+                  <Badge tone={student.is_active ? "emerald" : "slate"}>
+                    {student.is_active ? "Faol" : "Faol emas"}
+                  </Badge>
+                </Td>
+                <Td className="text-right">
+                  <button
+                    onClick={() => toggleActive.mutate(student)}
+                    className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    {student.is_active ? "Faolsizlantirish" : "Faollashtirish"}
+                  </button>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
       )}
 
       {isModalOpen && (
@@ -171,7 +170,7 @@ export function StudentsPage() {
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
               />
             </Field>
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <SecondaryButton type="button" onClick={() => setModalOpen(false)}>
                 Bekor qilish

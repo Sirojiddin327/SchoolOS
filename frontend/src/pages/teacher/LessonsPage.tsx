@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { Field, Input } from "../../components/form";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
+import { Table, Tbody, Td, Th, Thead, Tr } from "../../components/table";
 import { api } from "../../lib/api";
 import type { Lesson, Paginated } from "../../types";
 
@@ -19,7 +20,7 @@ export function TeacherLessonsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-900">Mening darslarim</h1>
+      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Mening darslarim</h1>
 
       <Field label="Sana">
         <Input
@@ -35,34 +36,32 @@ export function TeacherLessonsPage() {
       {data && data.results.length === 0 && <EmptyState title="Bu filtrga mos dars topilmadi" />}
 
       {data && data.results.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Sana</th>
-                <th className="px-4 py-3 font-medium">Vaqt</th>
-                <th className="px-4 py-3 font-medium">Sinf</th>
-                <th className="px-4 py-3 font-medium">Fan</th>
-                <th className="px-4 py-3 font-medium">Xona</th>
-                <th className="px-4 py-3 font-medium">Mavzu</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data.results.map((lesson) => (
-                <tr key={lesson.id}>
-                  <td className="px-4 py-3 text-slate-700">{lesson.date}</td>
-                  <td className="px-4 py-3 text-slate-700">
-                    {lesson.start_time.slice(0, 5)}–{lesson.end_time.slice(0, 5)}
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">{lesson.school_class_name}</td>
-                  <td className="px-4 py-3 text-slate-700">{lesson.subject_name}</td>
-                  <td className="px-4 py-3 text-slate-500">{lesson.room || "—"}</td>
-                  <td className="px-4 py-3 text-slate-500">{lesson.topic || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <Thead>
+            <Tr>
+              <Th>Sana</Th>
+              <Th>Vaqt</Th>
+              <Th>Sinf</Th>
+              <Th>Fan</Th>
+              <Th>Xona</Th>
+              <Th>Mavzu</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {data.results.map((lesson) => (
+              <Tr key={lesson.id}>
+                <Td className="text-slate-700 dark:text-slate-200">{lesson.date}</Td>
+                <Td className="text-slate-700 dark:text-slate-200">
+                  {lesson.start_time.slice(0, 5)}–{lesson.end_time.slice(0, 5)}
+                </Td>
+                <Td className="text-slate-700 dark:text-slate-200">{lesson.school_class_name}</Td>
+                <Td className="text-slate-700 dark:text-slate-200">{lesson.subject_name}</Td>
+                <Td>{lesson.room || "—"}</Td>
+                <Td>{lesson.topic || "—"}</Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
       )}
     </div>
   );

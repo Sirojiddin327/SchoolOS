@@ -1,9 +1,9 @@
 type ProgressBarTone = "brand" | "amber" | "emerald";
 
 const TRACK_TONE: Record<ProgressBarTone, string> = {
-  brand: "bg-brand-100",
-  amber: "bg-amber-100",
-  emerald: "bg-emerald-100",
+  brand: "bg-brand-100 dark:bg-brand-500/15",
+  amber: "bg-amber-100 dark:bg-amber-500/15",
+  emerald: "bg-emerald-100 dark:bg-emerald-500/15",
 };
 
 const FILL_TONE: Record<ProgressBarTone, string> = {

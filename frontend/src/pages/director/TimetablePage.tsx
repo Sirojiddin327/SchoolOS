@@ -122,8 +122,8 @@ export function TimetablePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Dars jadvali</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Dars jadvali</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Haftalik shablonni tuzing, keyin belgilangan haftaga real darslarni yarating.
           </p>
         </div>
@@ -136,7 +136,7 @@ export function TimetablePage() {
           </PrimaryButton>
         </div>
       </div>
-      {generateMessage && <p className="text-sm text-emerald-600">{generateMessage}</p>}
+      {generateMessage && <p className="text-sm text-emerald-600 dark:text-emerald-400">{generateMessage}</p>}
 
       <Field label="Sinf">
         <Select value={classId} onChange={(e) => setClassId(e.target.value)} className="max-w-xs">
@@ -154,17 +154,17 @@ export function TimetablePage() {
       {classId && isError && <ErrorState />}
 
       {classId && slots && (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
-                <th className="border-b border-r border-slate-200 bg-slate-50 px-3 py-2 text-left font-medium text-slate-500">
+                <th className="border-b border-r border-slate-200 bg-slate-50 px-3 py-2 text-left font-medium text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400">
                   Dars
                 </th>
                 {DAYS.map((day) => (
                   <th
                     key={day.value}
-                    className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-left font-medium text-slate-500"
+                    className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-left font-medium text-slate-500 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-400"
                   >
                     {day.label}
                   </th>
@@ -174,7 +174,7 @@ export function TimetablePage() {
             <tbody>
               {PERIODS.map((period) => (
                 <tr key={period}>
-                  <td className="border-b border-r border-slate-100 px-3 py-2 font-medium text-slate-500">
+                  <td className="border-b border-r border-slate-100 px-3 py-2 font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
                     {period}
                   </td>
                   {DAYS.map((day) => {
@@ -182,20 +182,20 @@ export function TimetablePage() {
                     return (
                       <td
                         key={day.value}
-                        className="border-b border-slate-100 px-2 py-2 align-top"
+                        className="border-b border-slate-100 px-2 py-2 align-top dark:border-slate-800"
                       >
                         {slot ? (
                           <button
                             onClick={() => openCell(day.value, period)}
-                            className="w-full rounded-md bg-brand-50 px-2 py-1.5 text-left hover:bg-brand-100"
+                            className="w-full rounded-md bg-brand-50 px-2 py-1.5 text-left hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20"
                           >
-                            <p className="font-medium text-brand-700">{slot.subject_name}</p>
-                            <p className="text-xs text-brand-600">{slot.teacher_name}</p>
+                            <p className="font-medium text-brand-700 dark:text-brand-300">{slot.subject_name}</p>
+                            <p className="text-xs text-brand-600 dark:text-brand-400">{slot.teacher_name}</p>
                           </button>
                         ) : (
                           <button
                             onClick={() => openCell(day.value, period)}
-                            className="w-full rounded-md border border-dashed border-slate-200 px-2 py-1.5 text-slate-300 hover:border-slate-300 hover:text-slate-400"
+                            className="w-full rounded-md border border-dashed border-slate-200 px-2 py-1.5 text-slate-300 hover:border-slate-300 hover:text-slate-400 dark:border-slate-700 dark:text-slate-600 dark:hover:border-slate-600 dark:hover:text-slate-500"
                           >
                             +
                           </button>
@@ -253,7 +253,7 @@ export function TimetablePage() {
             <Field label="Xona">
               <Input value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} />
             </Field>
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
             <div className="flex items-center justify-between pt-2">
               {(() => {
                 const existing = slotAt(editingCell.day, editingCell.period);
@@ -264,7 +264,7 @@ export function TimetablePage() {
                       deleteSlot.mutate(existing.id);
                       setEditingCell(null);
                     }}
-                    className="text-sm text-red-600 hover:underline"
+                    className="text-sm text-red-600 hover:underline dark:text-red-400"
                   >
                     O'chirish
                   </button>

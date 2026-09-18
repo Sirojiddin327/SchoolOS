@@ -16,6 +16,7 @@ from apps.common.permissions import IsDirector, IsDirectorOrReadOnly
 from . import services
 from .models import StudentProfile, TeacherProfile
 from .serializers import (
+    AvatarSerializer,
     ChangePasswordSerializer,
     MeSerializer,
     StudentSerializer,
@@ -126,3 +127,23 @@ class ChangePasswordView(APIView):
         user.must_change_password = False
         user.save(update_fields=["password", "must_change_password"])
         return Response({"detail": "Password updated."})
+
+
+class AvatarView(APIView):
+    """Lets the current user upload or remove their own avatar image."""
+
+    permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]
+    parser_classes: ClassVar[list[type]] = [MultiPartParser]
+
+    def post(self, request):
+        serializer = AvatarSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        if request.user.avatar:
+            request.user.avatar.delete(save=False)
+        serializer.save()
+        return Response(MeSerializer(request.user, context={"request": request}).data)
+
+    def delete(self, request):
+        if request.user.avatar:
+            request.user.avatar.delete(save=True)
+        return Response(MeSerializer(request.user, context={"request": request}).data)

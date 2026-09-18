@@ -9,6 +9,7 @@ export interface CurrentUser {
   role: Role;
   must_change_password: boolean;
   total_xp: number | null;
+  avatar_url: string | null;
 }
 
 export interface AttendanceCounts {

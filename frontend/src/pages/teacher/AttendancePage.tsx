@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, Clock3, FileText, type LucideIcon, XCircle } from "lucide-react";
 import { useState } from "react";
 
 import { Field, Input, PrimaryButton } from "../../components/form";
@@ -6,11 +7,11 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/states";
 import { api } from "../../lib/api";
 import type { AttendanceRecord, AttendanceStatus, Lesson, Paginated, RosterStudent } from "../../types";
 
-const STATUS_OPTIONS: { value: AttendanceStatus; label: string; icon: string }[] = [
-  { value: "PRESENT", label: "Keldi", icon: "✅" },
-  { value: "LATE", label: "Kechikdi", icon: "🕐" },
-  { value: "ABSENT", label: "Kelmadi", icon: "❌" },
-  { value: "EXCUSED", label: "Sababli", icon: "📄" },
+const STATUS_OPTIONS: { value: AttendanceStatus; label: string; icon: LucideIcon }[] = [
+  { value: "PRESENT", label: "Keldi", icon: CheckCircle2 },
+  { value: "LATE", label: "Kechikdi", icon: Clock3 },
+  { value: "ABSENT", label: "Kelmadi", icon: XCircle },
+  { value: "EXCUSED", label: "Sababli", icon: FileText },
 ];
 
 const STATUS_COLOR: Record<AttendanceStatus, string> = {
@@ -77,23 +78,23 @@ function AttendanceForm({ lesson, onDone }: { lesson: Lesson; onDone: () => void
 
   return (
     <div className="space-y-3">
-      <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+      <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
         {roster.map((student) => (
           <div key={student.id} className="flex items-center justify-between gap-3 px-4 py-3">
-            <span className="text-sm font-medium text-slate-800">{student.full_name}</span>
+            <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{student.full_name}</span>
             <div className="flex gap-1">
               {STATUS_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => setStatuses({ ...statuses, [student.id]: option.value })}
-                  className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                  className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
                     statuses[student.id] === option.value
                       ? STATUS_COLOR[option.value]
-                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
                   }`}
                 >
-                  {option.icon} {option.label}
+                  <option.icon className="h-3.5 w-3.5" /> {option.label}
                 </button>
               ))}
             </div>
@@ -104,8 +105,12 @@ function AttendanceForm({ lesson, onDone }: { lesson: Lesson; onDone: () => void
         <PrimaryButton onClick={() => save.mutate()} disabled={save.isPending}>
           {save.isPending ? "Saqlanmoqda..." : "Davomatni saqlash"}
         </PrimaryButton>
-        {saved && <span className="text-sm text-emerald-600">Saqlandi ✓</span>}
-        <button onClick={onDone} className="text-sm text-slate-500 hover:underline">
+        {saved && (
+          <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="h-4 w-4" /> Saqlandi
+          </span>
+        )}
+        <button onClick={onDone} className="text-sm text-slate-500 hover:underline dark:text-slate-400">
           Yopish
         </button>
       </div>
@@ -125,7 +130,7 @@ export function TeacherAttendancePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-900">Davomat</h1>
+      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Davomat</h1>
 
       <Field label="Sana">
         <Input
@@ -146,7 +151,7 @@ export function TeacherAttendancePage() {
       {data && data.results.length > 0 && (
         <div className="space-y-3">
           {data.results.map((lesson) => (
-            <div key={lesson.id} className="rounded-xl border border-slate-200 bg-white">
+            <div key={lesson.id} className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
               <button
                 onClick={() =>
                   setExpandedLessonId(expandedLessonId === lesson.id ? null : lesson.id)
@@ -154,20 +159,20 @@ export function TeacherAttendancePage() {
                 className="flex w-full items-center justify-between px-5 py-4 text-left"
               >
                 <div>
-                  <p className="font-semibold text-slate-900">
+                  <p className="font-semibold text-slate-900 dark:text-slate-50">
                     {lesson.subject_name} — {lesson.school_class_name}
                   </p>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     {lesson.start_time.slice(0, 5)}–{lesson.end_time.slice(0, 5)}
                     {lesson.room && ` · ${lesson.room}`}
                   </p>
                 </div>
-                <span className="text-sm font-medium text-brand-600">
+                <span className="text-sm font-medium text-brand-600 dark:text-brand-400">
                   {expandedLessonId === lesson.id ? "Yopish ▲" : "Davomat olish ▼"}
                 </span>
               </button>
               {expandedLessonId === lesson.id && (
-                <div className="border-t border-slate-100 px-5 py-4">
+                <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
                   <AttendanceForm lesson={lesson} onDone={() => setExpandedLessonId(null)} />
                 </div>
               )}

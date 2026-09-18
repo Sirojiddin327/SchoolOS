@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Field, Input, Select } from "../../components/form";
 import { StatCard } from "../../components/StatCard";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
+import { Table, Tbody, Td, Th, Thead, Tr } from "../../components/table";
 import { api } from "../../lib/api";
 import type { AttendanceRecord, ClassAttendanceSummary, Paginated, SchoolClass } from "../../types";
 
@@ -50,7 +51,7 @@ export function AttendancePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-900">Davomat</h1>
+      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Davomat</h1>
 
       <div className="flex flex-wrap gap-3">
         <Field label="Sinf">
@@ -90,39 +91,37 @@ export function AttendancePage() {
       )}
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">Tarix</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Tarix</h2>
         {historyQuery.isLoading && <LoadingState />}
         {historyQuery.isError && <ErrorState />}
         {historyQuery.data && historyQuery.data.results.length === 0 && (
           <EmptyState title="Bu filtrga mos davomat yozuvi yo'q" />
         )}
         {historyQuery.data && historyQuery.data.results.length > 0 && (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Sana</th>
-                  <th className="px-4 py-3 font-medium">O'quvchi</th>
-                  <th className="px-4 py-3 font-medium">Sinf</th>
-                  <th className="px-4 py-3 font-medium">Fan</th>
-                  <th className="px-4 py-3 font-medium">Holat</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {historyQuery.data.results.map((record) => (
-                  <tr key={record.id}>
-                    <td className="px-4 py-3 text-slate-700">{record.lesson_date}</td>
-                    <td className="px-4 py-3 text-slate-700">{record.student_name}</td>
-                    <td className="px-4 py-3 text-slate-700">{record.school_class_name}</td>
-                    <td className="px-4 py-3 text-slate-700">{record.subject_name}</td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {STATUS_LABEL[record.status] ?? record.status}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <Thead>
+              <Tr>
+                <Th>Sana</Th>
+                <Th>O'quvchi</Th>
+                <Th>Sinf</Th>
+                <Th>Fan</Th>
+                <Th>Holat</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {historyQuery.data.results.map((record) => (
+                <Tr key={record.id}>
+                  <Td className="text-slate-700 dark:text-slate-200">{record.lesson_date}</Td>
+                  <Td className="text-slate-700 dark:text-slate-200">{record.student_name}</Td>
+                  <Td className="text-slate-700 dark:text-slate-200">{record.school_class_name}</Td>
+                  <Td className="text-slate-700 dark:text-slate-200">{record.subject_name}</Td>
+                  <Td className="text-slate-700 dark:text-slate-200">
+                    {STATUS_LABEL[record.status] ?? record.status}
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
         )}
       </div>
     </div>

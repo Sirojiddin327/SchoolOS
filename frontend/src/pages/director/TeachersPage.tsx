@@ -5,6 +5,7 @@ import { Badge } from "../../components/Badge";
 import { Field, Input, PrimaryButton, SecondaryButton } from "../../components/form";
 import { Modal } from "../../components/Modal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
+import { Table, Tbody, Td, Th, Thead, Tr } from "../../components/table";
 import { api } from "../../lib/api";
 import type { Paginated, Teacher } from "../../types";
 
@@ -60,7 +61,7 @@ export function TeachersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900">O'qituvchilar</h1>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">O'qituvchilar</h1>
         <PrimaryButton onClick={() => setModalOpen(true)}>+ O'qituvchi qo'shish</PrimaryButton>
       </div>
 
@@ -71,43 +72,41 @@ export function TeachersPage() {
       )}
 
       {data && data.results.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Ism</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Telefon</th>
-                <th className="px-4 py-3 font-medium">Holat</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data.results.map((teacher) => (
-                <tr key={teacher.id}>
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    {teacher.first_name} {teacher.last_name}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{teacher.email}</td>
-                  <td className="px-4 py-3 text-slate-600">{teacher.phone_number || "—"}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone={teacher.is_active ? "emerald" : "slate"}>
-                      {teacher.is_active ? "Faol" : "Faol emas"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => toggleActive.mutate(teacher)}
-                      className="text-sm font-medium text-brand-600 hover:underline"
-                    >
-                      {teacher.is_active ? "Faolsizlantirish" : "Faollashtirish"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <Thead>
+            <Tr>
+              <Th>Ism</Th>
+              <Th>Email</Th>
+              <Th>Telefon</Th>
+              <Th>Holat</Th>
+              <Th />
+            </Tr>
+          </Thead>
+          <Tbody>
+            {data.results.map((teacher) => (
+              <Tr key={teacher.id}>
+                <Td className="font-medium text-slate-900 dark:text-slate-50">
+                  {teacher.first_name} {teacher.last_name}
+                </Td>
+                <Td className="text-slate-600 dark:text-slate-300">{teacher.email}</Td>
+                <Td className="text-slate-600 dark:text-slate-300">{teacher.phone_number || "—"}</Td>
+                <Td>
+                  <Badge tone={teacher.is_active ? "emerald" : "slate"}>
+                    {teacher.is_active ? "Faol" : "Faol emas"}
+                  </Badge>
+                </Td>
+                <Td className="text-right">
+                  <button
+                    onClick={() => toggleActive.mutate(teacher)}
+                    className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    {teacher.is_active ? "Faolsizlantirish" : "Faollashtirish"}
+                  </button>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
       )}
 
       {isModalOpen && (
@@ -150,7 +149,7 @@ export function TeachersPage() {
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
               />
             </Field>
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <SecondaryButton type="button" onClick={() => setModalOpen(false)}>
                 Bekor qilish

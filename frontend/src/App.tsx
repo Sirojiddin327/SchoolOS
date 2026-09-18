@@ -1,3 +1,21 @@
+import {
+  Award,
+  BarChart3,
+  Bell,
+  BookOpen,
+  CalendarDays,
+  ClipboardCheck,
+  ClipboardList,
+  FileText,
+  Flame,
+  GraduationCap,
+  LayoutDashboard,
+  School,
+  Settings,
+  Trophy,
+  UserCircle,
+  Users,
+} from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { LoadingState } from "./components/states";
@@ -9,6 +27,7 @@ import { AttendancePage } from "./pages/director/AttendancePage";
 import { ClassesPage } from "./pages/director/ClassesPage";
 import { DirectorDashboardPage } from "./pages/director/DashboardPage";
 import { LessonsPage } from "./pages/director/LessonsPage";
+import { DirectorProfilePage } from "./pages/director/ProfilePage";
 import { DirectorRankingsPage } from "./pages/director/RankingsPage";
 import { SettingsPage } from "./pages/director/SettingsPage";
 import { StudentsPage } from "./pages/director/StudentsPage";
@@ -39,47 +58,48 @@ import { DashboardLayout } from "./routes/DashboardLayout";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
 const DIRECTOR_NAV = [
-  { to: "/director", label: "Dashboard", end: true },
-  { to: "/director/students", label: "Students" },
-  { to: "/director/teachers", label: "Teachers" },
-  { to: "/director/classes", label: "Classes" },
-  { to: "/director/subjects", label: "Subjects" },
-  { to: "/director/lessons", label: "Lessons" },
-  { to: "/director/timetable", label: "Timetable" },
-  { to: "/director/attendance", label: "Attendance" },
-  { to: "/director/tests", label: "Tests" },
-  { to: "/director/activities", label: "Activities" },
-  { to: "/director/rankings", label: "XP & Rankings" },
-  { to: "/director/achievements", label: "Achievements" },
-  { to: "/director/notifications", label: "Notifications" },
-  { to: "/director/settings", label: "Settings" },
+  { to: "/director", label: "Boshqaruv paneli", end: true, icon: LayoutDashboard },
+  { to: "/director/students", label: "O'quvchilar", icon: Users },
+  { to: "/director/teachers", label: "O'qituvchilar", icon: GraduationCap },
+  { to: "/director/classes", label: "Sinflar", icon: School },
+  { to: "/director/subjects", label: "Fanlar", icon: BookOpen },
+  { to: "/director/lessons", label: "Darslar", icon: ClipboardList },
+  { to: "/director/timetable", label: "Dars jadvali", icon: CalendarDays },
+  { to: "/director/attendance", label: "Davomat", icon: ClipboardCheck },
+  { to: "/director/tests", label: "Testlar", icon: FileText },
+  { to: "/director/activities", label: "Topshiriqlar", icon: ClipboardList },
+  { to: "/director/rankings", label: "XP va reyting", icon: Trophy },
+  { to: "/director/achievements", label: "Yutuqlar", icon: Award },
+  { to: "/director/notifications", label: "Bildirishnomalar", icon: Bell },
+  { to: "/director/profile", label: "Profil", icon: UserCircle },
+  { to: "/director/settings", label: "Sozlamalar", icon: Settings },
 ];
 
 const TEACHER_NAV = [
-  { to: "/teacher", label: "Dashboard", end: true },
-  { to: "/teacher/classes", label: "My Classes" },
-  { to: "/teacher/lessons", label: "My Lessons" },
-  { to: "/teacher/attendance", label: "Attendance" },
-  { to: "/teacher/tests", label: "Tests" },
-  { to: "/teacher/activities", label: "Activities" },
-  { to: "/teacher/xp", label: "XP" },
-  { to: "/teacher/notifications", label: "Notifications" },
-  { to: "/teacher/profile", label: "Profile" },
+  { to: "/teacher", label: "Boshqaruv paneli", end: true, icon: LayoutDashboard },
+  { to: "/teacher/classes", label: "Sinflarim", icon: Users },
+  { to: "/teacher/lessons", label: "Darslarim", icon: BookOpen },
+  { to: "/teacher/attendance", label: "Davomat", icon: ClipboardCheck },
+  { to: "/teacher/tests", label: "Testlar", icon: FileText },
+  { to: "/teacher/activities", label: "Topshiriqlar", icon: ClipboardList },
+  { to: "/teacher/xp", label: "XP", icon: Trophy },
+  { to: "/teacher/notifications", label: "Bildirishnomalar", icon: Bell },
+  { to: "/teacher/profile", label: "Profil", icon: UserCircle },
 ];
 
 const STUDENT_NAV = [
-  { to: "/student", label: "Dashboard", end: true },
-  { to: "/student/class", label: "My Class" },
-  { to: "/student/lessons", label: "My Lessons" },
-  { to: "/student/attendance", label: "My Attendance" },
-  { to: "/student/tests", label: "Tests" },
-  { to: "/student/activities", label: "Activities" },
-  { to: "/student/xp", label: "My XP" },
-  { to: "/student/leaderboard", label: "Leaderboard" },
-  { to: "/student/achievements", label: "Achievements" },
-  { to: "/student/streak", label: "Streak" },
-  { to: "/student/notifications", label: "Notifications" },
-  { to: "/student/profile", label: "Profile" },
+  { to: "/student", label: "Boshqaruv paneli", end: true, icon: LayoutDashboard },
+  { to: "/student/class", label: "Mening sinfim", icon: Users },
+  { to: "/student/lessons", label: "Darslarim", icon: BookOpen },
+  { to: "/student/attendance", label: "Davomatim", icon: ClipboardCheck },
+  { to: "/student/tests", label: "Testlar", icon: FileText },
+  { to: "/student/activities", label: "Topshiriqlar", icon: ClipboardList },
+  { to: "/student/xp", label: "Mening XP", icon: Trophy },
+  { to: "/student/leaderboard", label: "Reyting", icon: BarChart3 },
+  { to: "/student/achievements", label: "Yutuqlar", icon: Award },
+  { to: "/student/streak", label: "Seriya", icon: Flame },
+  { to: "/student/notifications", label: "Bildirishnomalar", icon: Bell },
+  { to: "/student/profile", label: "Profil", icon: UserCircle },
 ];
 
 function HomeRedirect() {
@@ -116,6 +136,7 @@ export default function App() {
         <Route path="rankings" element={<DirectorRankingsPage />} />
         <Route path="achievements" element={<DirectorAchievementsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="profile" element={<DirectorProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Field, Input } from "../../components/form";
 import { StatCard } from "../../components/StatCard";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
+import { Table, Tbody, Td, Th, Thead, Tr } from "../../components/table";
 import { api } from "../../lib/api";
 import type { AttendanceRecord, Paginated, StudentDashboard } from "../../types";
 
@@ -34,7 +35,7 @@ export function StudentAttendancePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-900">Mening davomatim</h1>
+      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Mening davomatim</h1>
 
       {summaryQuery.isLoading && <LoadingState />}
       {summaryQuery.data && (
@@ -62,28 +63,26 @@ export function StudentAttendancePage() {
       )}
 
       {historyQuery.data && historyQuery.data.results.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Sana</th>
-                <th className="px-4 py-3 font-medium">Fan</th>
-                <th className="px-4 py-3 font-medium">Holat</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {historyQuery.data.results.map((record) => (
-                <tr key={record.id}>
-                  <td className="px-4 py-3 text-slate-700">{record.lesson_date}</td>
-                  <td className="px-4 py-3 text-slate-700">{record.subject_name}</td>
-                  <td className="px-4 py-3 text-slate-700">
-                    {STATUS_LABEL[record.status] ?? record.status}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <Thead>
+            <Tr>
+              <Th>Sana</Th>
+              <Th>Fan</Th>
+              <Th>Holat</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {historyQuery.data.results.map((record) => (
+              <Tr key={record.id}>
+                <Td className="text-slate-700 dark:text-slate-200">{record.lesson_date}</Td>
+                <Td className="text-slate-700 dark:text-slate-200">{record.subject_name}</Td>
+                <Td className="text-slate-700 dark:text-slate-200">
+                  {STATUS_LABEL[record.status] ?? record.status}
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
       )}
     </div>
   );

@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "../../components/Badge";
 import { Field, Input, PrimaryButton, SecondaryButton, Select } from "../../components/form";
 import { Modal } from "../../components/Modal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
+import { Table, Tbody, Td, Th, Thead, Tr } from "../../components/table";
 import { api } from "../../lib/api";
 import type {
   Paginated,
@@ -48,20 +50,26 @@ function QuestionRow({ question, onChanged }: { question: TestQuestionWrite; onC
   });
 
   return (
-    <div className="rounded-lg border border-slate-200 p-3">
+    <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-slate-800">{question.text}</p>
+        <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{question.text}</p>
         <button
           onClick={() => deleteQuestion.mutate()}
-          className="shrink-0 text-xs text-red-600 hover:underline"
+          className="shrink-0 text-xs text-red-600 hover:underline dark:text-red-400"
         >
           O'chirish
         </button>
       </div>
       <ul className="mt-2 space-y-1 text-sm">
         {options?.map((option) => (
-          <li key={option.id} className={option.is_correct ? "font-medium text-emerald-700" : "text-slate-500"}>
-            {option.is_correct ? "✓" : "·"} {option.text}
+          <li
+            key={option.id}
+            className={`flex items-center gap-1.5 ${
+              option.is_correct ? "font-medium text-emerald-700 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            {option.is_correct ? <Check className="h-3.5 w-3.5" /> : <span className="w-3.5 text-center">·</span>}
+            {option.text}
           </li>
         ))}
       </ul>
@@ -118,7 +126,7 @@ function AddQuestionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-dashed border-slate-300 p-3">
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-dashed border-slate-300 p-3 dark:border-slate-700">
       <Field label="Savol matni">
         <Input required value={text} onChange={(e) => setText(e.target.value)} />
       </Field>
@@ -146,12 +154,12 @@ function AddQuestionForm({
         <button
           type="button"
           onClick={() => setOptions([...options, { text: "", is_correct: false }])}
-          className="text-xs font-medium text-brand-600 hover:underline"
+          className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
         >
           + Variant qo'shish
         </button>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       <PrimaryButton type="submit" disabled={pending}>
         {pending ? "Saqlanmoqda..." : "Savolni qo'shish"}
       </PrimaryButton>
@@ -184,7 +192,7 @@ function TestManager({ test }: { test: TestSummary }) {
   });
 
   return (
-    <div className="space-y-4 border-t border-slate-100 px-5 py-4">
+    <div className="space-y-4 border-t border-slate-100 px-5 py-4 dark:border-slate-800">
       <div className="flex flex-wrap items-center gap-2">
         <SecondaryButton onClick={() => togglePublish.mutate()} disabled={togglePublish.isPending}>
           {test.is_published ? "Bekor qilish (unpublish)" : "E'lon qilish"}
@@ -195,7 +203,7 @@ function TestManager({ test }: { test: TestSummary }) {
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-slate-700">Savollar ({questions?.length ?? 0})</h3>
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Savollar ({questions?.length ?? 0})</h3>
         {questions?.map((question) => (
           <QuestionRow key={question.id} question={question} onChanged={refetch} />
         ))}
@@ -211,7 +219,7 @@ function TestManager({ test }: { test: TestSummary }) {
         ) : (
           <button
             onClick={() => setShowAddQuestion(true)}
-            className="text-sm font-medium text-brand-600 hover:underline"
+            className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
             + Savol qo'shish
           </button>
@@ -220,34 +228,32 @@ function TestManager({ test }: { test: TestSummary }) {
 
       {showResults && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-slate-700">Natijalar</h3>
+          <h3 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Natijalar</h3>
           {!results && <LoadingState label="Yuklanmoqda..." />}
           {results && results.length === 0 && <EmptyState title="Hali hech kim topshirmagan" />}
           {results && results.length > 0 && (
-            <div className="overflow-hidden rounded-lg border border-slate-200">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-500">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">O'quvchi</th>
-                    <th className="px-3 py-2 font-medium text-right">Natija</th>
-                    <th className="px-3 py-2 font-medium text-right">XP</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {results.map((attempt) => (
-                    <tr key={attempt.id}>
-                      <td className="px-3 py-2 text-slate-700">{attempt.student_name}</td>
-                      <td className="px-3 py-2 text-right text-slate-700">
-                        {attempt.score_percent?.toFixed(0)}%
-                      </td>
-                      <td className="px-3 py-2 text-right font-semibold text-emerald-600">
-                        +{attempt.xp_awarded}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table>
+              <Thead>
+                <Tr>
+                  <Th>O'quvchi</Th>
+                  <Th className="text-right">Natija</Th>
+                  <Th className="text-right">XP</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {results.map((attempt) => (
+                  <Tr key={attempt.id}>
+                    <Td className="text-slate-700 dark:text-slate-200">{attempt.student_name}</Td>
+                    <Td className="text-right text-slate-700 dark:text-slate-200">
+                      {attempt.score_percent?.toFixed(0)}%
+                    </Td>
+                    <Td className="text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                      +{attempt.xp_awarded}
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
           )}
         </div>
       )}
@@ -298,7 +304,7 @@ export function TeacherTestsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900">Testlar</h1>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Testlar</h1>
         <PrimaryButton onClick={() => setModalOpen(true)}>+ Test yaratish</PrimaryButton>
       </div>
 
@@ -309,14 +315,14 @@ export function TeacherTestsPage() {
       {tests && tests.results.length > 0 && (
         <div className="space-y-3">
           {tests.results.map((test) => (
-            <div key={test.id} className="rounded-xl border border-slate-200 bg-white">
+            <div key={test.id} className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
               <button
                 onClick={() => setExpandedId(expandedId === test.id ? null : test.id)}
                 className="flex w-full items-center justify-between px-5 py-4 text-left"
               >
                 <div>
-                  <p className="font-semibold text-slate-900">{test.title}</p>
-                  <p className="text-sm text-slate-500">
+                  <p className="font-semibold text-slate-900 dark:text-slate-50">{test.title}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     {test.subject_name} · {test.school_class_name} · {test.question_count} ta savol · maks{" "}
                     {test.max_xp} XP
                   </p>
@@ -398,7 +404,7 @@ export function TeacherTestsPage() {
                 />
               </Field>
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <SecondaryButton type="button" onClick={() => setModalOpen(false)}>
                 Bekor qilish

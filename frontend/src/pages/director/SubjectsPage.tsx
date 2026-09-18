@@ -33,7 +33,7 @@ export function SubjectsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-900">Fanlar</h1>
+      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Fanlar</h1>
 
       <form
         onSubmit={(e) => {
@@ -52,20 +52,20 @@ export function SubjectsPage() {
           Qo'shish
         </PrimaryButton>
       </form>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       {isLoading && <LoadingState />}
       {isError && <ErrorState />}
       {data && data.results.length === 0 && <EmptyState title="Hali fan yo'q" />}
 
       {data && data.results.length > 0 && (
-        <ul className="max-w-md divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+        <ul className="max-w-md divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
           {data.results.map((subject) => (
             <li key={subject.id} className="flex items-center justify-between px-4 py-3">
-              <span className="text-slate-800">{subject.name}</span>
+              <span className="text-slate-800 dark:text-slate-100">{subject.name}</span>
               <button
                 onClick={() => deleteSubject.mutate(subject.id)}
-                className="text-sm text-red-600 hover:underline"
+                className="text-sm text-red-600 hover:underline dark:text-red-400"
               >
                 O'chirish
               </button>

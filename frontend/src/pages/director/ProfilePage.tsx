@@ -3,7 +3,7 @@ import { ChangePasswordForm } from "../../components/ChangePasswordForm";
 import { TelegramConnect } from "../../components/TelegramConnect";
 import { useAuth } from "../../lib/auth";
 
-export function StudentProfilePage() {
+export function DirectorProfilePage() {
   const { user } = useAuth();
 
   return (

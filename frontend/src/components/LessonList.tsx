@@ -8,14 +8,14 @@ export function LessonList({ lessons }: { lessons: LessonSummary[] }) {
   }
 
   return (
-    <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+    <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
       {lessons.map((lesson) => (
         <div key={lesson.id} className="flex items-center justify-between gap-4 px-5 py-4">
           <div>
-            <p className="font-medium text-slate-900">
+            <p className="font-medium text-slate-900 dark:text-slate-100">
               {lesson.subject} — {lesson.school_class}
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {lesson.start_time.slice(0, 5)}–{lesson.end_time.slice(0, 5)}
               {lesson.room && ` · ${lesson.room}`}
               {lesson.topic && ` · ${lesson.topic}`}

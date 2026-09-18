@@ -5,6 +5,8 @@ import { Badge } from "../../components/Badge";
 import { Field, Input, PrimaryButton, SecondaryButton, Select } from "../../components/form";
 import { Modal } from "../../components/Modal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
+import { Table, Tbody, Td, Th, Thead, Tr } from "../../components/table";
+import { ACHIEVEMENT_ICON_OPTIONS, AchievementIcon } from "../../lib/achievementIcons";
 import { api } from "../../lib/api";
 import type { AchievementConditionType, AchievementManage, Paginated } from "../../types";
 
@@ -26,7 +28,7 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   name: "",
   description: "",
-  icon: "🏆",
+  icon: "trophy",
   condition_type: "XP_THRESHOLD",
   condition_value: "100",
 };
@@ -67,7 +69,7 @@ export function DirectorAchievementsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900">Yutuqlar</h1>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">Yutuqlar</h1>
         <PrimaryButton onClick={() => setModalOpen(true)}>+ Yutuq yaratish</PrimaryButton>
       </div>
 
@@ -76,45 +78,44 @@ export function DirectorAchievementsPage() {
       {data && data.results.length === 0 && <EmptyState title="Hali yutuq yaratilmagan" />}
 
       {data && data.results.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Nomi</th>
-                <th className="px-4 py-3 font-medium">Shart</th>
-                <th className="px-4 py-3 font-medium">Qiymat</th>
-                <th className="px-4 py-3 font-medium">Holati</th>
-                <th className="px-4 py-3 font-medium" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data.results.map((achievement) => (
-                <tr key={achievement.id}>
-                  <td className="px-4 py-3 text-slate-700">
-                    {achievement.icon} {achievement.name}
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {CONDITION_LABEL[achievement.condition_type]}
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">{achievement.condition_value}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone={achievement.is_active ? "emerald" : "slate"}>
-                      {achievement.is_active ? "Faol" : "Nofaol"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => toggleActive.mutate(achievement)}
-                      className="text-sm text-brand-600 hover:underline"
-                    >
-                      {achievement.is_active ? "Nofaollashtirish" : "Faollashtirish"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <Thead>
+            <Tr>
+              <Th>Nomi</Th>
+              <Th>Shart</Th>
+              <Th>Qiymat</Th>
+              <Th>Holati</Th>
+              <Th />
+            </Tr>
+          </Thead>
+          <Tbody>
+            {data.results.map((achievement) => (
+              <Tr key={achievement.id}>
+                <Td className="text-slate-700 dark:text-slate-200">
+                  <span className="inline-flex items-center gap-2">
+                    <AchievementIcon icon={achievement.icon} className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    {achievement.name}
+                  </span>
+                </Td>
+                <Td>{CONDITION_LABEL[achievement.condition_type]}</Td>
+                <Td>{achievement.condition_value}</Td>
+                <Td>
+                  <Badge tone={achievement.is_active ? "emerald" : "slate"}>
+                    {achievement.is_active ? "Faol" : "Nofaol"}
+                  </Badge>
+                </Td>
+                <Td className="text-right">
+                  <button
+                    onClick={() => toggleActive.mutate(achievement)}
+                    className="text-sm text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    {achievement.is_active ? "Nofaollashtirish" : "Faollashtirish"}
+                  </button>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
       )}
 
       {isModalOpen && (
@@ -128,7 +129,21 @@ export function DirectorAchievementsPage() {
           >
             <div className="grid grid-cols-3 gap-3">
               <Field label="Ikonka">
-                <Input value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} />
+                <div className="flex items-center gap-2">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300">
+                    <AchievementIcon icon={form.icon} className="h-4 w-4" />
+                  </span>
+                  <Select
+                    value={form.icon}
+                    onChange={(e) => setForm({ ...form, icon: e.target.value })}
+                  >
+                    {ACHIEVEMENT_ICON_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
               </Field>
               <div className="col-span-2">
                 <Field label="Nomi">
@@ -172,10 +187,10 @@ export function DirectorAchievementsPage() {
                 />
               </Field>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               "Birinchi test" va "100% ball" shartlari uchun qiymat e'tiborga olinmaydi.
             </p>
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <SecondaryButton type="button" onClick={() => setModalOpen(false)}>
                 Bekor qilish
