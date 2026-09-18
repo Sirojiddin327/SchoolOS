@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 
+import { Badge } from "../../components/Badge";
 import { Field, Input, PrimaryButton, SecondaryButton } from "../../components/form";
 import { Modal } from "../../components/Modal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
@@ -90,15 +91,9 @@ export function TeachersPage() {
                   <td className="px-4 py-3 text-slate-600">{teacher.email}</td>
                   <td className="px-4 py-3 text-slate-600">{teacher.phone_number || "—"}</td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        teacher.is_active
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
+                    <Badge tone={teacher.is_active ? "emerald" : "slate"}>
                       {teacher.is_active ? "Faol" : "Faol emas"}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

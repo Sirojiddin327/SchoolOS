@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Badge } from "../../components/Badge";
 import { Field, Input, PrimaryButton, SecondaryButton, Select } from "../../components/form";
 import { Modal } from "../../components/Modal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
@@ -97,15 +98,9 @@ export function DirectorAchievementsPage() {
                   </td>
                   <td className="px-4 py-3 text-slate-500">{achievement.condition_value}</td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                        achievement.is_active
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
+                    <Badge tone={achievement.is_active ? "emerald" : "slate"}>
                       {achievement.is_active ? "Faol" : "Nofaol"}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

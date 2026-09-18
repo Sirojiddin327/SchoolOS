@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { Badge } from "../../components/Badge";
+import { AchievementUnlockCard } from "../../components/AchievementUnlockCard";
 import { PrimaryButton } from "../../components/form";
 import { ErrorState, LoadingState } from "../../components/states";
+import { markAchievementsCelebrated } from "../../lib/achievementCelebration";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { getLevelInfo } from "../../lib/gamification";
@@ -93,7 +94,9 @@ export function StudentTestTakingPage() {
       if (beforeIds) {
         try {
           const { data: afterAchievements } = await api.get<Achievement[]>("/achievements/");
-          setNewlyUnlocked(afterAchievements.filter((a) => a.unlocked && !beforeIds.has(a.id)));
+          const fresh = afterAchievements.filter((a) => a.unlocked && !beforeIds.has(a.id));
+          setNewlyUnlocked(fresh);
+          markAchievementsCelebrated(fresh.map((a) => a.id));
         } catch {
           // Achievement-unlock celebration is a nice-to-have — a failed refetch
           // here should never block showing the student their test result.
@@ -212,17 +215,11 @@ function TestResult({
       )}
 
       {newlyUnlocked.map((achievement, index) => (
-        <div
+        <AchievementUnlockCard
           key={achievement.id}
-          className="animate-pop-in flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left"
-          style={{ animationDelay: `${(index + 1) * 120}ms` }}
-        >
-          <span className="text-2xl">{achievement.icon || "🏆"}</span>
-          <div>
-            <Badge tone="amber">Yangi yutuq</Badge>
-            <p className="mt-1 font-medium text-slate-900">{achievement.name}</p>
-          </div>
-        </div>
+          achievement={achievement}
+          delayMs={(index + 1) * 120}
+        />
       ))}
 
       <Link to="/student/tests" className="inline-block text-sm font-medium text-brand-600 hover:underline">

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Badge } from "../../components/Badge";
 import { Field, Input, PrimaryButton, SecondaryButton, Select } from "../../components/form";
 import { Modal } from "../../components/Modal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
@@ -320,13 +321,9 @@ export function TeacherTestsPage() {
                     {test.max_xp} XP
                   </p>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                    test.is_published ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
-                  }`}
-                >
+                <Badge tone={test.is_published ? "emerald" : "slate"} className="shrink-0">
                   {test.is_published ? "E'lon qilingan" : "Qoralama"}
-                </span>
+                </Badge>
               </button>
               {expandedId === test.id && <TestManager test={test} />}
             </div>

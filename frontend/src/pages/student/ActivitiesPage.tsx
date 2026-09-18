@@ -1,10 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { AchievementUnlockCard } from "../../components/AchievementUnlockCard";
 import { PrimaryButton } from "../../components/form";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
+import { useNewlyUnlockedAchievements } from "../../lib/achievementCelebration";
+import { useNewlyGradedSubmissions } from "../../lib/activityResultCelebration";
 import { api } from "../../lib/api";
-import type { ActivitySubmission, ActivitySummary, Paginated } from "../../types";
+import { useCountUp } from "../../lib/useCountUp";
+import type { Achievement, ActivitySubmission, ActivitySummary, Paginated } from "../../types";
 
 const TYPE_LABEL: Record<ActivitySummary["activity_type"], string> = {
   ASSIGNMENT: "Topshiriq",
@@ -13,6 +17,23 @@ const TYPE_LABEL: Record<ActivitySummary["activity_type"], string> = {
   PRACTICAL: "Amaliy ish",
   SPORTS: "Sport",
 };
+
+function GradedCelebrationBanner({ submission, delayMs = 0 }: { submission: ActivitySubmission; delayMs?: number }) {
+  const xp = useCountUp(submission.result?.xp_awarded ?? 0, { startFrom: 0 });
+
+  return (
+    <div
+      className="animate-pop-in flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4"
+      style={{ animationDelay: `${delayMs}ms` }}
+    >
+      <div>
+        <p className="text-sm font-medium text-emerald-800">"{submission.activity_title}" baholandi!</p>
+        <p className="text-xs text-emerald-600">{submission.result?.score_percent.toFixed(0)}% ball</p>
+      </div>
+      <p className="text-2xl font-bold tabular-nums text-emerald-700">+{xp} XP</p>
+    </div>
+  );
+}
 
 function SubmissionForm({ activityId, onDone }: { activityId: number; onDone: () => void }) {
   const [content, setContent] = useState("");
@@ -71,6 +92,13 @@ export function StudentActivitiesPage() {
     queryFn: async () =>
       (await api.get<Paginated<ActivitySubmission>>("/my-activity-submissions/")).data,
   });
+  const { data: achievements } = useQuery({
+    queryKey: ["achievements"],
+    queryFn: async () => (await api.get<Achievement[]>("/achievements/")).data,
+  });
+
+  const newlyGraded = useNewlyGradedSubmissions(submissions?.results);
+  const newlyUnlocked = useNewlyUnlockedAchievements(achievements);
 
   const submissionByActivity = new Map((submissions?.results ?? []).map((s) => [s.activity, s]));
 
@@ -80,6 +108,21 @@ export function StudentActivitiesPage() {
         <h1 className="text-xl font-bold text-slate-900">Topshiriqlar</h1>
         <p className="mt-1 text-sm text-slate-500">Sinfingiz uchun e'lon qilingan topshiriq va challenjlar.</p>
       </div>
+
+      {newlyGraded.length > 0 && (
+        <div className="space-y-2">
+          {newlyGraded.map((submission, index) => (
+            <GradedCelebrationBanner key={submission.id} submission={submission} delayMs={index * 120} />
+          ))}
+        </div>
+      )}
+      {newlyUnlocked.length > 0 && (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {newlyUnlocked.map((achievement, index) => (
+            <AchievementUnlockCard key={achievement.id} achievement={achievement} delayMs={index * 120} />
+          ))}
+        </div>
+      )}
 
       {isLoading && <LoadingState />}
       {isError && <ErrorState />}

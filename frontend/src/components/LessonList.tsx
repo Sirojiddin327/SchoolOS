@@ -1,4 +1,5 @@
 import type { LessonSummary } from "../types";
+import { Badge } from "./Badge";
 import { EmptyState } from "./states";
 
 export function LessonList({ lessons }: { lessons: LessonSummary[] }) {
@@ -20,15 +21,9 @@ export function LessonList({ lessons }: { lessons: LessonSummary[] }) {
               {lesson.topic && ` · ${lesson.topic}`}
             </p>
           </div>
-          <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
-              lesson.attendance_marked
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-amber-50 text-amber-700"
-            }`}
-          >
+          <Badge tone={lesson.attendance_marked ? "emerald" : "amber"} className="shrink-0">
             {lesson.attendance_marked ? "Davomat olindi" : "Davomat kutilmoqda"}
-          </span>
+          </Badge>
         </div>
       ))}
     </div>

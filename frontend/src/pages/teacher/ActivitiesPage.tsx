@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Badge } from "../../components/Badge";
 import { Field, Input, PrimaryButton, SecondaryButton, Select } from "../../components/form";
 import { Modal } from "../../components/Modal";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
@@ -237,17 +238,9 @@ export function TeacherActivitiesPage() {
                     {activity.submission_count} ta topshirildi · maks {activity.max_xp} XP
                   </p>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                    activity.status === "PUBLISHED"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : activity.status === "CLOSED"
-                        ? "bg-slate-200 text-slate-600"
-                        : "bg-slate-100 text-slate-500"
-                  }`}
-                >
+                <Badge tone={activity.status === "PUBLISHED" ? "emerald" : "slate"} className="shrink-0">
                   {STATUS_LABEL[activity.status]}
-                </span>
+                </Badge>
               </button>
               {expandedId === activity.id && <ActivityManager activity={activity} />}
             </div>

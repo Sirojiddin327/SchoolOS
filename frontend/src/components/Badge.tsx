@@ -10,10 +10,20 @@ const TONE_CLASS: Record<BadgeTone, string> = {
   slate: "bg-slate-100 text-slate-600",
 };
 
-export function Badge({ tone = "slate", children }: { tone?: BadgeTone; children: ReactNode }) {
+export function Badge({
+  tone = "slate",
+  className,
+  children,
+}: {
+  tone?: BadgeTone;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${TONE_CLASS[tone]}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${TONE_CLASS[tone]}${
+        className ? ` ${className}` : ""
+      }`}
     >
       {children}
     </span>
