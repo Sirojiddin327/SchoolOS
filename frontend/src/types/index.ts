@@ -36,6 +36,10 @@ export interface DirectorDashboard {
   total_classes: number;
   today_lessons: number;
   today_attendance: AttendanceCounts;
+  total_tests: number;
+  total_activities: number;
+  total_xp_awarded: number;
+  top_class: { name: string; total_xp: number } | null;
 }
 
 export interface TeacherDashboard {

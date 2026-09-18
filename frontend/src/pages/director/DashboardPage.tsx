@@ -36,6 +36,20 @@ export function DirectorDashboardPage() {
               <StatCard label="Sababli" value={data.today_attendance.excused} />
             </div>
           </div>
+
+          <div>
+            <h2 className="mb-3 text-sm font-semibold text-slate-700">O'quv va motivatsiya</h2>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <StatCard label="Jami testlar" value={data.total_tests} />
+              <StatCard label="Jami topshiriqlar" value={data.total_activities} />
+              <StatCard label="Berilgan XP" value={data.total_xp_awarded} />
+              <StatCard
+                label="Yetakchi sinf"
+                value={data.top_class ? data.top_class.name : "—"}
+                hint={data.top_class ? `${data.top_class.total_xp} XP` : undefined}
+              />
+            </div>
+          </div>
         </>
       )}
     </div>

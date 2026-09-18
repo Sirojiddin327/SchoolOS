@@ -4,10 +4,12 @@ import { LoadingState } from "./components/states";
 import { useAuth } from "./lib/auth";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import { DirectorAchievementsPage } from "./pages/director/AchievementsPage";
 import { AttendancePage } from "./pages/director/AttendancePage";
 import { ClassesPage } from "./pages/director/ClassesPage";
 import { DirectorDashboardPage } from "./pages/director/DashboardPage";
 import { LessonsPage } from "./pages/director/LessonsPage";
+import { DirectorRankingsPage } from "./pages/director/RankingsPage";
 import { SettingsPage } from "./pages/director/SettingsPage";
 import { StudentsPage } from "./pages/director/StudentsPage";
 import { SubjectsPage } from "./pages/director/SubjectsPage";
@@ -45,6 +47,10 @@ const DIRECTOR_NAV = [
   { to: "/director/lessons", label: "Lessons" },
   { to: "/director/timetable", label: "Timetable" },
   { to: "/director/attendance", label: "Attendance" },
+  { to: "/director/tests", label: "Tests" },
+  { to: "/director/activities", label: "Activities" },
+  { to: "/director/rankings", label: "XP & Rankings" },
+  { to: "/director/achievements", label: "Achievements" },
   { to: "/director/notifications", label: "Notifications" },
   { to: "/director/settings", label: "Settings" },
 ];
@@ -105,6 +111,10 @@ export default function App() {
         <Route path="lessons" element={<LessonsPage />} />
         <Route path="timetable" element={<TimetablePage />} />
         <Route path="attendance" element={<AttendancePage />} />
+        <Route path="tests" element={<TeacherTestsPage />} />
+        <Route path="activities" element={<TeacherActivitiesPage />} />
+        <Route path="rankings" element={<DirectorRankingsPage />} />
+        <Route path="achievements" element={<DirectorAchievementsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
