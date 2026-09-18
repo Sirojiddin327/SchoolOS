@@ -263,3 +263,33 @@ class AchievementManageAPITests(APITestCase):
         response = self.client.get("/api/achievements/")
         names = {item["name"] for item in response.data}
         self.assertNotIn(achievement.name, names)
+
+
+class MyRankAPITests(APITestCase):
+    def test_rank_reflects_total_xp_ordering(self):
+        class_a = make_school_class()
+        _leader_user, leader = make_student(class_a)
+        leader.total_xp = 100
+        leader.save()
+        me_user, me = make_student(class_a)
+        me.total_xp = 50
+        me.save()
+
+        self.client.force_authenticate(me_user)
+        response = self.client.get("/api/leaderboard/me/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["rank"], 2)
+        self.assertEqual(response.data["total_students"], 2)
+
+    def test_class_rank_is_null_when_student_has_no_class(self):
+        student_user, _student = make_student(school_class=None)
+        self.client.force_authenticate(student_user)
+        response = self.client.get("/api/leaderboard/me/")
+        self.assertIsNone(response.data["class_rank"])
+
+    def test_teacher_cannot_access_my_rank(self):
+        teacher_user, _profile = make_teacher()
+        self.client.force_authenticate(teacher_user)
+        response = self.client.get("/api/leaderboard/me/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

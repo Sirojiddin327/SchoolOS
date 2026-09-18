@@ -119,6 +119,38 @@ class MyStreakView(APIView):
         return Response(StreakSerializer(streak).data)
 
 
+class MyRankView(APIView):
+    """A student's own position — computed here rather than making them find
+    themselves in the public leaderboard list, which deliberately carries no
+    id/email to match against (privacy: spec says never expose more than
+    rank/name/class/xp there). Rank ties share the same number (dense rank via
+    a `total_xp__gt` count), matching how the leaderboard itself orders.
+    """
+
+    permission_classes: ClassVar[list[type[BasePermission]]] = [IsStudent]
+
+    def get(self, request):
+        student = request.user.student_profile
+        rank = StudentProfile.objects.filter(total_xp__gt=student.total_xp).count() + 1
+        total_students = StudentProfile.objects.count()
+
+        class_rank = None
+        total_classes = SchoolClass.objects.count()
+        if student.school_class_id:
+            class_rank = (
+                SchoolClass.objects.filter(total_xp__gt=student.school_class.total_xp).count() + 1
+            )
+
+        return Response(
+            {
+                "rank": rank,
+                "total_students": total_students,
+                "class_rank": class_rank,
+                "total_classes": total_classes,
+            }
+        )
+
+
 class AchievementManageViewSet(viewsets.ModelViewSet):
     """Director-only CRUD over the achievement catalog (create/edit/retire
     achievements). Everyone's read-only, unlock-annotated view is
