@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
@@ -10,6 +10,8 @@ from apps.academics.models import Lesson
 from apps.attendance.models import Attendance
 from apps.attendance.services import count_by_status
 from apps.common.permissions import IsDirector, IsStudent, IsTeacher
+from apps.gamification.models import XPTransaction
+from apps.learning.models import Activity, Test
 from apps.schools.models import SchoolClass
 from apps.users.models import StudentProfile, TeacherProfile
 
@@ -42,6 +44,8 @@ class DirectorDashboardView(APIView):
     def get(self, request):
         today = timezone.localdate()
         today_lessons = Lesson.objects.filter(date=today)
+        total_xp_awarded = XPTransaction.objects.aggregate(total=Sum("amount"))["total"] or 0
+        top_class = SchoolClass.objects.order_by("-total_xp").first()
 
         return Response(
             {
@@ -51,6 +55,12 @@ class DirectorDashboardView(APIView):
                 "today_lessons": today_lessons.count(),
                 "today_attendance": _attendance_counts(
                     Attendance.objects.filter(lesson__date=today)
+                ),
+                "total_tests": Test.objects.count(),
+                "total_activities": Activity.objects.count(),
+                "total_xp_awarded": total_xp_awarded,
+                "top_class": (
+                    {"name": top_class.name, "total_xp": top_class.total_xp} if top_class else None
                 ),
             }
         )
