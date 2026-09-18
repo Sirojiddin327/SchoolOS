@@ -1,4 +1,5 @@
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
+from unittest.mock import patch
 
 from django.db import IntegrityError, transaction
 from django.test import TestCase
@@ -14,10 +15,12 @@ from apps.common.testing import (
     make_teacher,
     make_timetable_slot,
 )
+from apps.notifications.models import Notification
 from apps.school_config.models import SchoolTimeSettings
 
-from .models import Lesson
+from .models import Lesson, LessonReminder
 from .services import generate_lessons_for_week
+from .tasks import send_lesson_reminders
 
 
 def _this_weeks_monday() -> date:
@@ -153,3 +156,69 @@ class LessonQuerysetScopingAPITests(APITestCase):
         response = self.client.get("/api/lessons/")
         ids = {row["id"] for row in response.data["results"]}
         self.assertEqual(ids, {self.lesson_a.id})
+
+
+class SendLessonRemindersTests(TestCase):
+    FIXED_NOW = timezone.make_aware(datetime(2026, 9, 21, 8, 0))  # noqa: DTZ001
+
+    def setUp(self):
+        self.subject = make_subject()
+        self.teacher_user, self.teacher = make_teacher()
+        self.school_class = make_school_class()
+        self.student_user, self.student = make_student(self.school_class)
+
+    def _make_lesson(self, start_time, lesson_date):
+        end_time = (datetime.combine(lesson_date, start_time) + timedelta(minutes=45)).time()
+        return make_lesson(
+            school_class=self.school_class,
+            subject=self.subject,
+            teacher=self.teacher,
+            lesson_date=lesson_date,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+    @patch("apps.academics.tasks.timezone")
+    def test_sends_reminder_for_a_lesson_starting_in_about_an_hour(self, mock_timezone):
+        mock_timezone.localtime.return_value = self.FIXED_NOW
+        lesson = self._make_lesson(start_time=time(9, 0), lesson_date=date(2026, 9, 21))
+
+        sent = send_lesson_reminders()
+
+        self.assertEqual(sent, 1)
+        self.assertTrue(LessonReminder.objects.filter(lesson=lesson).exists())
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.student_user, category=Notification.Category.LESSON_REMINDER
+            ).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.teacher_user, category=Notification.Category.LESSON_REMINDER
+            ).exists()
+        )
+
+    @patch("apps.academics.tasks.timezone")
+    def test_lesson_outside_the_reminder_window_is_not_reminded(self, mock_timezone):
+        mock_timezone.localtime.return_value = self.FIXED_NOW
+        self._make_lesson(start_time=time(11, 0), lesson_date=date(2026, 9, 21))
+
+        self.assertEqual(send_lesson_reminders(), 0)
+
+    @patch("apps.academics.tasks.timezone")
+    def test_lesson_on_a_different_date_is_not_reminded(self, mock_timezone):
+        mock_timezone.localtime.return_value = self.FIXED_NOW
+        self._make_lesson(start_time=time(9, 0), lesson_date=date(2026, 9, 22))
+
+        self.assertEqual(send_lesson_reminders(), 0)
+
+    @patch("apps.academics.tasks.timezone")
+    def test_running_twice_does_not_send_duplicate_reminders(self, mock_timezone):
+        mock_timezone.localtime.return_value = self.FIXED_NOW
+        self._make_lesson(start_time=time(9, 0), lesson_date=date(2026, 9, 21))
+
+        send_lesson_reminders()
+        second_run_sent = send_lesson_reminders()
+
+        self.assertEqual(second_run_sent, 0)
+        self.assertEqual(LessonReminder.objects.count(), 1)

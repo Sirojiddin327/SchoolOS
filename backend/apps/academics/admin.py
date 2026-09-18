@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Lesson, Subject, TimetableSlot
+from .models import Lesson, LessonReminder, Subject, TimetableSlot
 
 
 @admin.register(Subject)
@@ -23,3 +23,9 @@ class TimetableSlotAdmin(admin.ModelAdmin):
     list_display = ("school_class", "day_of_week", "period_number", "subject", "teacher", "room")
     list_filter = ("day_of_week", "school_class", "subject")
     autocomplete_fields = ("subject", "school_class", "teacher")
+
+
+@admin.register(LessonReminder)
+class LessonReminderAdmin(admin.ModelAdmin):
+    list_display = ("lesson", "sent_at")
+    autocomplete_fields = ("lesson",)

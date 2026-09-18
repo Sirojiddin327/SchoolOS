@@ -121,3 +121,23 @@ class TimetableSlot(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.school_class} — {self.get_day_of_week_display()} #{self.period_number}: {self.subject}"
+
+
+class LessonReminder(TimeStampedModel):
+    """Marks that the ~1-hour-before reminder was already sent for a `Lesson`
+    — the send-once guard for `tasks.send_lesson_reminders`, since Celery Beat
+    re-runs the task every few minutes and a lesson's start time can fall
+    inside more than one run's window.
+    """
+
+    lesson = models.OneToOneField(
+        Lesson, verbose_name=_("lesson"), related_name="reminder", on_delete=models.CASCADE
+    )
+    sent_at = models.DateTimeField(_("sent at"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("lesson reminder")
+        verbose_name_plural = _("lesson reminders")
+
+    def __str__(self) -> str:
+        return f"Reminder sent for {self.lesson}"

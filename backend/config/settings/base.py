@@ -183,3 +183,9 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "send-lesson-reminders": {
+        "task": "apps.academics.tasks.send_lesson_reminders",
+        "schedule": 300.0,  # every 5 minutes; must stay well under REMINDER_WINDOW
+    },
+}

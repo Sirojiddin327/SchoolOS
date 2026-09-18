@@ -16,6 +16,7 @@ class Notification(TimeStampedModel):
         XP_EARNED = "XP_EARNED", _("XP earned")
         ACHIEVEMENT_UNLOCKED = "ACHIEVEMENT_UNLOCKED", _("Achievement unlocked")
         STREAK = "STREAK", _("Streak")
+        LESSON_REMINDER = "LESSON_REMINDER", _("Lesson reminder")
 
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL,
