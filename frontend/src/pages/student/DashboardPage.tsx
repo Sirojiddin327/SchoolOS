@@ -121,7 +121,8 @@ export function StudentDashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
-          Salom, {user?.first_name || user?.username}! 👋
+          Salom, {user?.first_name || user?.username}!{" "}
+          <span className="inline-block origin-[70%_70%] animate-wave">👋</span>
         </h1>
         <p className="mt-1 text-sm text-slate-500">Bugun ham bilim sari bir qadam.</p>
       </div>

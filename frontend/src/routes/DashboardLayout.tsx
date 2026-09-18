@@ -60,7 +60,16 @@ function SidebarContent({ navItems, brand, onNavigate }: { navItems: NavItem[]; 
   );
 }
 
-export function DashboardLayout({ navItems, brand }: { navItems: NavItem[]; brand: string }) {
+export function DashboardLayout({
+  navItems,
+  brand,
+  vibrant = false,
+}: {
+  navItems: NavItem[];
+  brand: string;
+  /** A livelier backdrop for the student experience — teacher/director stay neutral. */
+  vibrant?: boolean;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
@@ -71,7 +80,13 @@ export function DashboardLayout({ navItems, brand }: { navItems: NavItem[]; bran
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-slate-50 md:flex">
+    <div
+      className={`min-h-screen md:flex ${
+        vibrant
+          ? "bg-gradient-to-br from-brand-50 via-slate-50 to-amber-50"
+          : "bg-slate-50"
+      }`}
+    >
       {/* Mobile top bar */}
       <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
         <p className="text-lg font-bold text-brand-700">SchoolOS</p>

@@ -142,7 +142,7 @@ export default function App() {
         path="/student"
         element={
           <ProtectedRoute allowedRoles={["STUDENT"]}>
-            <DashboardLayout navItems={STUDENT_NAV} brand="O'quvchi paneli" />
+            <DashboardLayout navItems={STUDENT_NAV} brand="O'quvchi paneli" vibrant />
           </ProtectedRoute>
         }
       >
