@@ -139,7 +139,9 @@ class StudentSerializer(serializers.ModelSerializer):
             "phone_number",
             "parent_phone_number",
             "password",
+            "total_xp",
         )
+        read_only_fields = ("total_xp",)
 
     def validate_email(self, value):
         queryset = User.objects.filter(email__iexact=value)

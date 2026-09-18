@@ -178,3 +178,19 @@ class MeEndpointTests(APITestCase):
         self.client.force_authenticate(make_director())
         response = self.client.get("/api/auth/me/")
         self.assertIsNone(response.data["total_xp"])
+
+
+class StudentSerializerTests(APITestCase):
+    def test_student_detail_exposes_read_only_total_xp(self):
+        director = make_director()
+        _, profile = make_student()
+        profile.total_xp = 15
+        profile.save()
+
+        self.client.force_authenticate(director)
+        response = self.client.get(f"/api/students/{profile.id}/")
+        self.assertEqual(response.data["total_xp"], 15)
+
+        self.client.patch(f"/api/students/{profile.id}/", {"total_xp": 9999}, format="json")
+        profile.refresh_from_db()
+        self.assertEqual(profile.total_xp, 15)

@@ -17,7 +17,9 @@ class SchoolClassSerializer(serializers.ModelSerializer):
             "class_teacher",
             "class_teacher_name",
             "students_count",
+            "total_xp",
         )
+        read_only_fields = ("total_xp",)
 
     def get_class_teacher_name(self, obj) -> str | None:
         return str(obj.class_teacher) if obj.class_teacher else None
