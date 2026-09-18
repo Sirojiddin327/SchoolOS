@@ -4,7 +4,7 @@ from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
 from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -12,6 +12,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from apps.academics.models import Lesson
 from apps.attendance.models import Attendance
 from apps.attendance.services import count_by_status
+from apps.gamification.models import Streak, StudentAchievement, XPTransaction
+from apps.learning.models import Test, TestAttempt
 from apps.schools.models import SchoolClass
 from apps.telegram_bot.models import TelegramAccount, TelegramLinkCode
 from apps.users.models import StudentProfile, TeacherProfile
@@ -26,9 +28,22 @@ LESSONS_BUTTON = "📅 Bugungi darslar"
 ATTENDANCE_BUTTON = "📊 Davomatim"
 CLASSES_BUTTON = "🏫 Mening sinflarim"
 STATS_BUTTON = "📊 Umumiy statistika"
+TESTS_BUTTON = "🧪 Mavjud testlar"
+XP_BUTTON = "🏆 Mening XP'im"
+ACHIEVEMENTS_BUTTON = "🎖 Yutuqlarim"
+CLASS_XP_BUTTON = "📈 Sinflar XP statistikasi"
 
-STUDENT_MENU = ReplyKeyboardMarkup([[LESSONS_BUTTON, ATTENDANCE_BUTTON]], resize_keyboard=True)
-TEACHER_MENU = ReplyKeyboardMarkup([[LESSONS_BUTTON, CLASSES_BUTTON]], resize_keyboard=True)
+STUDENT_MENU = ReplyKeyboardMarkup(
+    [
+        [LESSONS_BUTTON, ATTENDANCE_BUTTON],
+        [TESTS_BUTTON, XP_BUTTON],
+        [ACHIEVEMENTS_BUTTON],
+    ],
+    resize_keyboard=True,
+)
+TEACHER_MENU = ReplyKeyboardMarkup(
+    [[LESSONS_BUTTON, CLASSES_BUTTON], [CLASS_XP_BUTTON]], resize_keyboard=True
+)
 DIRECTOR_MENU = ReplyKeyboardMarkup([[STATS_BUTTON]], resize_keyboard=True)
 
 
@@ -117,18 +132,99 @@ async def my_classes_text(user) -> str:
 async def director_stats_text() -> str:
     today = timezone.localdate()
     counts = await acount_by_status(Attendance.objects.filter(lesson__date=today))
+    xp_today = await XPTransaction.objects.filter(created_at__date=today).aaggregate(total=Sum("amount"))
+    top_class = await SchoolClass.objects.order_by("-total_xp").afirst()
 
-    return (
-        "📊 Umumiy statistika:\n\n"
-        f"👨‍🎓 Jami o'quvchilar: {await StudentProfile.objects.acount()}\n"
-        f"👩‍🏫 Jami o'qituvchilar: {await TeacherProfile.objects.acount()}\n"
-        f"🏫 Jami sinflar: {await SchoolClass.objects.acount()}\n"
-        f"📅 Bugungi darslar: {await Lesson.objects.filter(date=today).acount()}\n\n"
-        "Bugungi davomat:\n"
-        f"✅ Keldi: {counts[Attendance.Status.PRESENT]}\n"
-        f"🕐 Kechikdi: {counts[Attendance.Status.LATE]}\n"
-        f"❌ Kelmadi: {counts[Attendance.Status.ABSENT]}"
+    lines = [
+        "📊 Umumiy statistika:",
+        "",
+        f"👨‍🎓 Jami o'quvchilar: {await StudentProfile.objects.acount()}",
+        f"👩‍🏫 Jami o'qituvchilar: {await TeacherProfile.objects.acount()}",
+        f"🏫 Jami sinflar: {await SchoolClass.objects.acount()}",
+        f"📅 Bugungi darslar: {await Lesson.objects.filter(date=today).acount()}",
+        "",
+        "Bugungi davomat:",
+        f"✅ Keldi: {counts[Attendance.Status.PRESENT]}",
+        f"🕐 Kechikdi: {counts[Attendance.Status.LATE]}",
+        f"❌ Kelmadi: {counts[Attendance.Status.ABSENT]}",
+        "",
+        f"⭐ Bugun berilgan XP: {xp_today['total'] or 0}",
+    ]
+    if top_class:
+        lines.append(f"🥇 Yetakchi sinf: {top_class.name} ({top_class.total_xp} XP)")
+    return "\n".join(lines)
+
+
+async def available_tests_text(user) -> str:
+    profile = await StudentProfile.objects.select_related("school_class").aget(user=user)
+    if not profile.school_class_id:
+        return "Siz hali biror sinfga biriktirilmagansiz."
+
+    taken_test_ids = {
+        test_id
+        async for test_id in TestAttempt.objects.filter(student=profile).values_list("test_id", flat=True)
+    }
+    queryset = (
+        Test.objects.filter(is_published=True, school_class_id=profile.school_class_id)
+        .exclude(id__in=taken_test_ids)
+        .select_related("subject")
+        .order_by("-created_at")[:10]
     )
+    tests = [test async for test in queryset]
+    if not tests:
+        return "🧪 Hozircha yangi test yo'q."
+
+    lines = ["🧪 Mavjud testlar:", ""]
+    for test in tests:
+        lines.append(f"• {test.subject.name}: {test.title} (max {test.max_xp} XP)")
+    lines.append("\nTestni topshirish uchun veb-saytga kiring.")
+    return "\n".join(lines)
+
+
+async def my_xp_text(user) -> str:
+    profile = await StudentProfile.objects.aget(user=user)
+    streak, _created = await Streak.objects.aget_or_create(student=profile)
+    return (
+        "🏆 Mening XP'im:\n\n"
+        f"⭐ Jami XP: {profile.total_xp}\n"
+        f"🔥 Joriy seriya: {streak.current_streak} kun\n"
+        f"🏅 Eng uzun seriya: {streak.longest_streak} kun"
+    )
+
+
+async def my_achievements_text(user) -> str:
+    profile = await StudentProfile.objects.aget(user=user)
+    unlocked = [
+        student_achievement
+        async for student_achievement in StudentAchievement.objects.select_related("achievement")
+        .filter(student=profile)
+        .order_by("-unlocked_at")
+    ]
+    if not unlocked:
+        return "🎖 Hali birorta yutuq ochilmagan. Test va topshiriqlarni bajarib, birinchi yutuqingizni oching!"
+
+    lines = ["🎖 Yutuqlarim:", ""]
+    for student_achievement in unlocked:
+        achievement = student_achievement.achievement
+        lines.append(f"{achievement.icon} {achievement.name} — {achievement.description}")
+    return "\n".join(lines)
+
+
+async def class_xp_text(user) -> str:
+    profile = await TeacherProfile.objects.aget(user=user)
+    classes = [
+        cls
+        async for cls in SchoolClass.objects.filter(
+            Q(class_teacher=profile) | Q(lessons__teacher=profile)
+        ).distinct()
+    ]
+    if not classes:
+        return "Sizga hali sinf biriktirilmagan."
+
+    lines = ["📈 Sinflar XP statistikasi:", ""]
+    for cls in sorted(classes, key=lambda school_class: -school_class.total_xp):
+        lines.append(f"• {cls.name}: {cls.total_xp} XP")
+    return "\n".join(lines)
 
 
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -186,6 +282,14 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         reply = await my_classes_text(user)
     elif text == STATS_BUTTON:
         reply = await director_stats_text()
+    elif text == TESTS_BUTTON:
+        reply = await available_tests_text(user)
+    elif text == XP_BUTTON:
+        reply = await my_xp_text(user)
+    elif text == ACHIEVEMENTS_BUTTON:
+        reply = await my_achievements_text(user)
+    elif text == CLASS_XP_BUTTON:
+        reply = await class_xp_text(user)
     else:
         reply = "Iltimos, quyidagi menyudan tanlang."
 
