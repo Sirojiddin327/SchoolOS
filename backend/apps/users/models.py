@@ -98,6 +98,11 @@ class StudentProfile(models.Model):
     birth_date = models.DateField(_("birth date"), null=True, blank=True)
     phone_number = models.CharField(_("phone number"), max_length=20, blank=True)
     parent_phone_number = models.CharField(_("parent phone number"), max_length=20, blank=True)
+    total_xp = models.PositiveIntegerField(
+        _("total XP"),
+        default=0,
+        help_text=_("Never edit directly — only apps.gamification.services.award_xp may change this."),
+    )
 
     class Meta:
         verbose_name = _("student profile")

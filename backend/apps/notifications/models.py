@@ -9,6 +9,11 @@ class Notification(TimeStampedModel):
     class Category(models.TextChoices):
         GENERAL = "GENERAL", _("General")
         ATTENDANCE = "ATTENDANCE", _("Attendance")
+        TEST_PUBLISHED = "TEST_PUBLISHED", _("Test published")
+        TEST_RESULT = "TEST_RESULT", _("Test result")
+        XP_EARNED = "XP_EARNED", _("XP earned")
+        ACHIEVEMENT_UNLOCKED = "ACHIEVEMENT_UNLOCKED", _("Achievement unlocked")
+        STREAK = "STREAK", _("Streak")
 
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     "apps.dashboard",
     "apps.school_config",
     "apps.telegram_bot",
+    "apps.learning",
+    "apps.gamification",
 ]
 
 MIDDLEWARE = [

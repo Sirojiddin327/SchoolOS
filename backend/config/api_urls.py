@@ -18,4 +18,6 @@ urlpatterns = [
     path("", include("apps.dashboard.urls")),
     path("", include("apps.school_config.urls")),
     path("", include("apps.telegram_bot.urls")),
+    path("", include("apps.learning.urls")),
+    path("", include("apps.gamification.urls")),
 ]

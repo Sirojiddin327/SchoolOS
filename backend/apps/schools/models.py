@@ -16,6 +16,11 @@ class SchoolClass(TimeStampedModel):
         blank=True,
         on_delete=models.SET_NULL,
     )
+    total_xp = models.PositiveIntegerField(
+        _("total XP"),
+        default=0,
+        help_text=_("Never edit directly — only apps.gamification.services.award_xp may change this."),
+    )
 
     class Meta:
         verbose_name = _("school class")
