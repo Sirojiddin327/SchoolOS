@@ -7,6 +7,8 @@ export interface CurrentUser {
   first_name: string;
   last_name: string;
   role: Role;
+  must_change_password: boolean;
+  total_xp: number | null;
 }
 
 export interface AttendanceCounts {
@@ -77,6 +79,7 @@ export interface Student {
   birth_date: string | null;
   phone_number: string;
   parent_phone_number: string;
+  total_xp: number;
 }
 
 export interface SchoolClass {
@@ -85,6 +88,7 @@ export interface SchoolClass {
   class_teacher: number | null;
   class_teacher_name: string | null;
   students_count: number;
+  total_xp: number;
 }
 
 export interface Subject {
@@ -182,4 +186,169 @@ export interface TelegramLinkCode {
   code: string;
   expires_at: string;
   bot_username: string;
+}
+
+// ---------- Learning: tests ----------
+
+export interface TestOption {
+  id: number;
+  text: string;
+}
+
+export interface TestOptionWrite extends TestOption {
+  question: number;
+  is_correct: boolean;
+}
+
+export interface TestQuestion {
+  id: number;
+  text: string;
+  order: number;
+  options: TestOption[];
+}
+
+export interface TestQuestionWrite {
+  id: number;
+  test: number;
+  text: string;
+  order: number;
+}
+
+export interface TestSummary {
+  id: number;
+  title: string;
+  subject: number;
+  subject_name: string;
+  school_class: number;
+  school_class_name: string;
+  teacher_name: string;
+  time_limit_minutes: number | null;
+  max_xp: number;
+  is_published: boolean;
+  question_count: number;
+  created_at: string;
+}
+
+export interface TestDetail extends TestSummary {
+  description: string;
+  questions: TestQuestion[];
+}
+
+export type TestAttemptStatus = "IN_PROGRESS" | "SUBMITTED";
+
+export interface TestAttempt {
+  id: number;
+  test: number;
+  test_title: string;
+  student: number;
+  student_name: string;
+  status: TestAttemptStatus;
+  started_at: string;
+  submitted_at: string | null;
+  score_percent: number | null;
+  xp_awarded: number | null;
+}
+
+// ---------- Learning: activities ----------
+
+export type ActivityType = "ASSIGNMENT" | "CHALLENGE" | "TYPING" | "PRACTICAL" | "SPORTS";
+export type ActivityStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
+
+export interface ActivitySummary {
+  id: number;
+  title: string;
+  subject: number;
+  subject_name: string;
+  school_class: number;
+  school_class_name: string;
+  teacher_name: string;
+  activity_type: ActivityType;
+  max_xp: number;
+  start_date: string | null;
+  end_date: string | null;
+  status: ActivityStatus;
+  submission_count: number;
+  created_at: string;
+}
+
+export interface ActivityDetail extends ActivitySummary {
+  description: string;
+}
+
+export interface ActivityResult {
+  score_percent: number;
+  xp_awarded: number;
+  feedback: string;
+  graded_at: string;
+}
+
+export interface ActivitySubmission {
+  id: number;
+  activity: number;
+  activity_title: string;
+  student: number;
+  student_name: string;
+  content: string;
+  attachment: string | null;
+  submitted_at: string;
+  result: ActivityResult | null;
+}
+
+// ---------- Gamification ----------
+
+export type XpSource = "TEST" | "ACTIVITY";
+
+export interface XPTransaction {
+  id: number;
+  student: number;
+  student_name: string;
+  amount: number;
+  source: XpSource;
+  reason: string;
+  related_title: string | null;
+  created_at: string;
+}
+
+export interface StudentLeaderboardEntry {
+  rank: number;
+  name: string;
+  school_class_name: string | null;
+  total_xp: number;
+}
+
+export interface ClassLeaderboardEntry {
+  rank: number;
+  name: string;
+  total_xp: number;
+}
+
+export interface Achievement {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  unlocked_at: string | null;
+}
+
+export type AchievementConditionType =
+  | "FIRST_TEST"
+  | "PERFECT_SCORE"
+  | "XP_THRESHOLD"
+  | "STREAK_LENGTH";
+
+export interface AchievementManage {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+  condition_type: AchievementConditionType;
+  condition_value: number;
+  is_active: boolean;
+}
+
+export interface Streak {
+  current_streak: number;
+  longest_streak: number;
+  last_activity_date: string | null;
 }

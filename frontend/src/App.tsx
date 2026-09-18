@@ -13,11 +13,18 @@ import { StudentsPage } from "./pages/director/StudentsPage";
 import { SubjectsPage } from "./pages/director/SubjectsPage";
 import { TeachersPage } from "./pages/director/TeachersPage";
 import { TimetablePage } from "./pages/director/TimetablePage";
+import { StudentActivitiesPage } from "./pages/student/ActivitiesPage";
+import { StudentAchievementsPage } from "./pages/student/AchievementsPage";
 import { StudentAttendancePage } from "./pages/student/AttendancePage";
 import { StudentClassPage } from "./pages/student/ClassPage";
 import { StudentDashboardPage } from "./pages/student/DashboardPage";
+import { StudentLeaderboardPage } from "./pages/student/LeaderboardPage";
 import { StudentLessonsPage } from "./pages/student/LessonsPage";
 import { StudentProfilePage } from "./pages/student/ProfilePage";
+import { StudentStreakPage } from "./pages/student/StreakPage";
+import { StudentTestTakingPage } from "./pages/student/TestTakingPage";
+import { StudentTestsPage } from "./pages/student/TestsPage";
+import { StudentXpPage } from "./pages/student/XpPage";
 import { TeacherAttendancePage } from "./pages/teacher/AttendancePage";
 import { TeacherClassesPage } from "./pages/teacher/ClassesPage";
 import { TeacherDashboardPage } from "./pages/teacher/DashboardPage";
@@ -53,6 +60,12 @@ const STUDENT_NAV = [
   { to: "/student/class", label: "My Class" },
   { to: "/student/lessons", label: "My Lessons" },
   { to: "/student/attendance", label: "My Attendance" },
+  { to: "/student/tests", label: "Tests" },
+  { to: "/student/activities", label: "Activities" },
+  { to: "/student/xp", label: "My XP" },
+  { to: "/student/leaderboard", label: "Leaderboard" },
+  { to: "/student/achievements", label: "Achievements" },
+  { to: "/student/streak", label: "Streak" },
   { to: "/student/notifications", label: "Notifications" },
   { to: "/student/profile", label: "Profile" },
 ];
@@ -118,6 +131,13 @@ export default function App() {
         <Route path="class" element={<StudentClassPage />} />
         <Route path="lessons" element={<StudentLessonsPage />} />
         <Route path="attendance" element={<StudentAttendancePage />} />
+        <Route path="tests" element={<StudentTestsPage />} />
+        <Route path="tests/:id" element={<StudentTestTakingPage />} />
+        <Route path="activities" element={<StudentActivitiesPage />} />
+        <Route path="xp" element={<StudentXpPage />} />
+        <Route path="leaderboard" element={<StudentLeaderboardPage />} />
+        <Route path="achievements" element={<StudentAchievementsPage />} />
+        <Route path="streak" element={<StudentStreakPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<StudentProfilePage />} />
       </Route>
