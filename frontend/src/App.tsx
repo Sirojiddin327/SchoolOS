@@ -25,11 +25,14 @@ import { StudentStreakPage } from "./pages/student/StreakPage";
 import { StudentTestTakingPage } from "./pages/student/TestTakingPage";
 import { StudentTestsPage } from "./pages/student/TestsPage";
 import { StudentXpPage } from "./pages/student/XpPage";
+import { TeacherActivitiesPage } from "./pages/teacher/ActivitiesPage";
 import { TeacherAttendancePage } from "./pages/teacher/AttendancePage";
 import { TeacherClassesPage } from "./pages/teacher/ClassesPage";
 import { TeacherDashboardPage } from "./pages/teacher/DashboardPage";
 import { TeacherLessonsPage } from "./pages/teacher/LessonsPage";
 import { TeacherProfilePage } from "./pages/teacher/ProfilePage";
+import { TeacherTestsPage } from "./pages/teacher/TestsPage";
+import { TeacherXpPage } from "./pages/teacher/XpPage";
 import { DashboardLayout } from "./routes/DashboardLayout";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
@@ -51,6 +54,9 @@ const TEACHER_NAV = [
   { to: "/teacher/classes", label: "My Classes" },
   { to: "/teacher/lessons", label: "My Lessons" },
   { to: "/teacher/attendance", label: "Attendance" },
+  { to: "/teacher/tests", label: "Tests" },
+  { to: "/teacher/activities", label: "Activities" },
+  { to: "/teacher/xp", label: "XP" },
   { to: "/teacher/notifications", label: "Notifications" },
   { to: "/teacher/profile", label: "Profile" },
 ];
@@ -115,6 +121,9 @@ export default function App() {
         <Route path="classes" element={<TeacherClassesPage />} />
         <Route path="lessons" element={<TeacherLessonsPage />} />
         <Route path="attendance" element={<TeacherAttendancePage />} />
+        <Route path="tests" element={<TeacherTestsPage />} />
+        <Route path="activities" element={<TeacherActivitiesPage />} />
+        <Route path="xp" element={<TeacherXpPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<TeacherProfilePage />} />
       </Route>
