@@ -1,17 +1,18 @@
 from typing import ClassVar
 
 from django.db.models import Q
-from rest_framework import generics
+from rest_framework import generics, viewsets
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.common.permissions import IsStudent
+from apps.common.permissions import IsDirector, IsStudent
 from apps.schools.models import SchoolClass
 from apps.users.models import StudentProfile
 
 from .models import Achievement, Streak, StudentAchievement, XPTransaction
 from .serializers import (
+    AchievementManageSerializer,
     AchievementSerializer,
     ClassLeaderboardSerializer,
     StreakSerializer,
@@ -116,3 +117,15 @@ class MyStreakView(APIView):
     def get(self, request):
         streak, _created = Streak.objects.get_or_create(student=request.user.student_profile)
         return Response(StreakSerializer(streak).data)
+
+
+class AchievementManageViewSet(viewsets.ModelViewSet):
+    """Director-only CRUD over the achievement catalog (create/edit/retire
+    achievements). Everyone's read-only, unlock-annotated view is
+    `AchievementListView` at `/api/achievements/` — kept separate so the two
+    never have to compromise on shape.
+    """
+
+    serializer_class = AchievementManageSerializer
+    queryset = Achievement.objects.all()
+    permission_classes: ClassVar[list[type[BasePermission]]] = [IsDirector]

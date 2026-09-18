@@ -82,3 +82,21 @@ class StreakSerializer(serializers.ModelSerializer):
     class Meta:
         model = Streak
         fields = ("current_streak", "longest_streak", "last_activity_date")
+
+
+class AchievementManageSerializer(serializers.ModelSerializer):
+    """Director-only CRUD over the achievement catalog — plain fields, no
+    per-caller `unlocked` status (that's what `AchievementSerializer` is for).
+    """
+
+    class Meta:
+        model = Achievement
+        fields = (
+            "id",
+            "name",
+            "description",
+            "icon",
+            "condition_type",
+            "condition_value",
+            "is_active",
+        )

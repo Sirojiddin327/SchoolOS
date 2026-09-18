@@ -5,7 +5,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.common.testing import make_director, make_school_class, make_student
+from apps.common.testing import make_director, make_school_class, make_student, make_teacher
 from apps.notifications.models import Notification
 
 from .models import Achievement, Streak, StudentAchievement, XPTransaction
@@ -215,3 +215,51 @@ class XpHistoryAPITests(APITestCase):
         self.client.force_authenticate(make_director())
         response = self.client.get("/api/xp/history/")
         self.assertEqual(response.data["count"], 2)
+
+
+class AchievementManageAPITests(APITestCase):
+    def test_director_can_create_an_achievement(self):
+        self.client.force_authenticate(make_director())
+        response = self.client.post(
+            "/api/achievements/manage/",
+            {
+                "name": "Marathoner",
+                "description": "30 day streak",
+                "icon": "🏃",
+                "condition_type": Achievement.ConditionType.STREAK_LENGTH,
+                "condition_value": 30,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Achievement.objects.filter(name="Marathoner").exists())
+
+    def test_director_can_deactivate_an_achievement(self):
+        achievement = Achievement.objects.create(
+            name="Retire Me", description="d", condition_type=Achievement.ConditionType.XP_THRESHOLD,
+            condition_value=10,
+        )
+        self.client.force_authenticate(make_director())
+        response = self.client.patch(
+            f"/api/achievements/manage/{achievement.id}/", {"is_active": False}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        achievement.refresh_from_db()
+        self.assertFalse(achievement.is_active)
+
+    def test_teacher_cannot_manage_achievements(self):
+        teacher_user, _profile = make_teacher()
+        self.client.force_authenticate(teacher_user)
+        response = self.client.get("/api/achievements/manage/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_deactivated_achievement_is_excluded_from_the_public_catalog(self):
+        achievement = Achievement.objects.create(
+            name="Hidden", description="d", condition_type=Achievement.ConditionType.XP_THRESHOLD,
+            condition_value=10, is_active=False,
+        )
+        student_user, _profile = make_student()
+        self.client.force_authenticate(student_user)
+        response = self.client.get("/api/achievements/")
+        names = {item["name"] for item in response.data}
+        self.assertNotIn(achievement.name, names)
