@@ -107,6 +107,20 @@ export interface Lesson {
   topic: string;
 }
 
+export interface TimetableSlot {
+  id: number;
+  school_class: number;
+  school_class_name: string;
+  subject: number;
+  subject_name: string;
+  teacher: number;
+  teacher_name: string;
+  day_of_week: number;
+  day_of_week_display: string;
+  period_number: number;
+  room: string;
+}
+
 export interface ClassAttendanceSummary {
   class_id: number;
   class_name: string;
@@ -153,6 +167,10 @@ export interface NotificationItem {
 export interface SchoolTimeConfig {
   start_time: string;
   end_time: string;
+  period_duration_minutes: number;
+  short_break_minutes: number;
+  long_break_after_period: number;
+  long_break_minutes: number;
 }
 
 export interface TelegramStatus {

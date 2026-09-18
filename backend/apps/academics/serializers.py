@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Lesson, Subject
+from .models import Lesson, Subject, TimetableSlot
 
 
 class SubjectSerializer(serializers.ModelSerializer):
@@ -40,3 +40,33 @@ class LessonSerializer(serializers.ModelSerializer):
         if start_time and end_time and end_time <= start_time:
             raise serializers.ValidationError({"end_time": "End time must be after start time."})
         return attrs
+
+
+class TimetableSlotSerializer(serializers.ModelSerializer):
+    subject_name = serializers.CharField(source="subject.name", read_only=True)
+    school_class_name = serializers.CharField(source="school_class.name", read_only=True)
+    teacher_name = serializers.SerializerMethodField()
+    day_of_week_display = serializers.CharField(source="get_day_of_week_display", read_only=True)
+
+    class Meta:
+        model = TimetableSlot
+        fields = (
+            "id",
+            "school_class",
+            "school_class_name",
+            "subject",
+            "subject_name",
+            "teacher",
+            "teacher_name",
+            "day_of_week",
+            "day_of_week_display",
+            "period_number",
+            "room",
+        )
+
+    def get_teacher_name(self, obj) -> str:
+        return str(obj.teacher)
+
+
+class GenerateLessonsSerializer(serializers.Serializer):
+    week_start = serializers.DateField()

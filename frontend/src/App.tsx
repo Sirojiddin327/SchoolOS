@@ -12,6 +12,7 @@ import { SettingsPage } from "./pages/director/SettingsPage";
 import { StudentsPage } from "./pages/director/StudentsPage";
 import { SubjectsPage } from "./pages/director/SubjectsPage";
 import { TeachersPage } from "./pages/director/TeachersPage";
+import { TimetablePage } from "./pages/director/TimetablePage";
 import { StudentAttendancePage } from "./pages/student/AttendancePage";
 import { StudentClassPage } from "./pages/student/ClassPage";
 import { StudentDashboardPage } from "./pages/student/DashboardPage";
@@ -32,6 +33,7 @@ const DIRECTOR_NAV = [
   { to: "/director/classes", label: "Classes" },
   { to: "/director/subjects", label: "Subjects" },
   { to: "/director/lessons", label: "Lessons" },
+  { to: "/director/timetable", label: "Timetable" },
   { to: "/director/attendance", label: "Attendance" },
   { to: "/director/notifications", label: "Notifications" },
   { to: "/director/settings", label: "Settings" },
@@ -82,6 +84,7 @@ export default function App() {
         <Route path="classes" element={<ClassesPage />} />
         <Route path="subjects" element={<SubjectsPage />} />
         <Route path="lessons" element={<LessonsPage />} />
+        <Route path="timetable" element={<TimetablePage />} />
         <Route path="attendance" element={<AttendancePage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="settings" element={<SettingsPage />} />

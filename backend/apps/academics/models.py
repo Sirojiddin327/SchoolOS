@@ -65,3 +65,59 @@ class Lesson(TimeStampedModel):
     def clean(self):
         if self.start_time and self.end_time and self.end_time <= self.start_time:
             raise ValidationError({"end_time": _("End time must be after start time.")})
+
+
+class TimetableSlot(TimeStampedModel):
+    """A recurring weekly schedule entry — 'every Monday, period 2, this class has Math'.
+
+    Concrete dated `Lesson` rows are generated from these (see services.generate_lessons_for_week),
+    so attendance keeps working against real Lesson instances, not the template.
+    """
+
+    class DayOfWeek(models.IntegerChoices):
+        MONDAY = 1, _("Monday")
+        TUESDAY = 2, _("Tuesday")
+        WEDNESDAY = 3, _("Wednesday")
+        THURSDAY = 4, _("Thursday")
+        FRIDAY = 5, _("Friday")
+        SATURDAY = 6, _("Saturday")
+
+    school_class = models.ForeignKey(
+        "schools.SchoolClass",
+        verbose_name=_("class"),
+        related_name="timetable_slots",
+        on_delete=models.CASCADE,
+    )
+    subject = models.ForeignKey(
+        Subject,
+        verbose_name=_("subject"),
+        related_name="timetable_slots",
+        on_delete=models.PROTECT,
+    )
+    teacher = models.ForeignKey(
+        "users.TeacherProfile",
+        verbose_name=_("teacher"),
+        related_name="timetable_slots",
+        on_delete=models.PROTECT,
+    )
+    day_of_week = models.PositiveSmallIntegerField(_("day of week"), choices=DayOfWeek.choices)
+    period_number = models.PositiveSmallIntegerField(_("period number"))
+    room = models.CharField(_("room"), max_length=50, blank=True)
+
+    class Meta:
+        verbose_name = _("timetable slot")
+        verbose_name_plural = _("timetable slots")
+        ordering = ("day_of_week", "period_number")
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["school_class", "day_of_week", "period_number"],
+                name="unique_class_slot",
+            ),
+            models.UniqueConstraint(
+                fields=["teacher", "day_of_week", "period_number"],
+                name="unique_teacher_slot",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.school_class} — {self.get_day_of_week_display()} #{self.period_number}: {self.subject}"

@@ -18,8 +18,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [schoolLockMessage, setSchoolLockMessage] = useState<string | null>(null);
-
-  const hasToken = Boolean(tokenStorage.getAccess());
+  const [hasToken, setHasToken] = useState(() => Boolean(tokenStorage.getAccess()));
 
   const { data: user, isLoading } = useQuery({
     queryKey: ["me"],
@@ -41,11 +40,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     await apiLogin(email, password);
+    setHasToken(true);
     await queryClient.invalidateQueries({ queryKey: ["me"] });
   }
 
   function logout() {
     apiLogout();
+    setHasToken(false);
     queryClient.setQueryData(["me"], null);
     queryClient.clear();
   }

@@ -1,9 +1,14 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views import LessonViewSet, SubjectViewSet
+from .views import GenerateLessonsView, LessonViewSet, SubjectViewSet, TimetableSlotViewSet
 
 router = DefaultRouter()
 router.register("subjects", SubjectViewSet, basename="subject")
 router.register("lessons", LessonViewSet, basename="lesson")
+router.register("timetable-slots", TimetableSlotViewSet, basename="timetableslot")
 
-urlpatterns = router.urls
+urlpatterns = [
+    path("timetable/generate/", GenerateLessonsView.as_view(), name="timetable-generate"),
+    *router.urls,
+]

@@ -67,7 +67,7 @@ function AttendanceForm({ lesson, onDone }: { lesson: Lesson; onDone: () => void
     },
   });
 
-  if (rosterLoading || existingLoading || statuses === null) {
+  if (rosterLoading || existingLoading || statuses === null || !roster) {
     return <LoadingState label="Ro'yxat yuklanmoqda..." />;
   }
 
