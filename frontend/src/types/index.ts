@@ -786,3 +786,20 @@ export interface ClassReportAISummary {
   summary: string;
   generated_at: string;
 }
+
+export interface Partner {
+  id: string;
+  name: string;
+  nameLabel?: string;
+  project: string;
+  description: string;
+  technologies: string[];
+  logo: string;
+  originalUrl: string;
+  utmUrl: string;
+  githubUrl: string | null;
+  isOwn: boolean;
+  websiteLabel?: string;
+  telegramUrl?: string;
+  telegramLabel?: string;
+}

@@ -43,13 +43,13 @@ import { DirectorTasksPage } from "./pages/director/TasksPage";
 import { DirectorTestsPage } from "./pages/director/TestsPage";
 import { TeachersPage } from "./pages/director/TeachersPage";
 import { TimetablePage } from "./pages/director/TimetablePage";
+import { DirectorPartnersPage } from "./pages/director/PartnersPage";
+import { ExamGuard } from "./components/ExamGuard";
 import { StudentActivitiesPage } from "./pages/student/ActivitiesPage";
 import { StudentAchievementsPage } from "./pages/student/AchievementsPage";
 import { StudentAttendancePage } from "./pages/student/AttendancePage";
 import { StudentClassPage } from "./pages/student/ClassPage";
 import { StudentDashboardPage } from "./pages/student/DashboardPage";
-import { ExamGuard } from "./components/ExamGuard";
-import { StudentDuelTakingPage } from "./pages/student/DuelTakingPage";
 import { StudentDuelsPage } from "./pages/student/DuelsPage";
 import { StudentGamePlayPage } from "./pages/student/GamePlayPage";
 import { StudentGamesPage } from "./pages/student/GamesPage";
@@ -58,9 +58,11 @@ import { StudentLessonsPage } from "./pages/student/LessonsPage";
 import { StudentProfilePage } from "./pages/student/ProfilePage";
 import { StudentRemedialPage } from "./pages/student/RemedialPage";
 import { StudentStreakPage } from "./pages/student/StreakPage";
+import { StudentDuelTakingPage } from "./pages/student/DuelTakingPage";
 import { StudentTestTakingPage } from "./pages/student/TestTakingPage";
 import { StudentTestsPage } from "./pages/student/TestsPage";
 import { StudentXpPage } from "./pages/student/XpPage";
+import { StudentPartnersPage } from "./pages/student/PartnersPage";
 import { TeacherActivitiesPage } from "./pages/teacher/ActivitiesPage";
 import { TeacherAttendancePage } from "./pages/teacher/AttendancePage";
 import { TeacherClassesPage } from "./pages/teacher/ClassesPage";
@@ -70,6 +72,7 @@ import { TeacherProfilePage } from "./pages/teacher/ProfilePage";
 import { TeacherTasksPage } from "./pages/teacher/TasksPage";
 import { TeacherTestsPage } from "./pages/teacher/TestsPage";
 import { TeacherXpPage } from "./pages/teacher/XpPage";
+import { TeacherPartnersPage } from "./pages/teacher/PartnersPage";
 import type { NavGroup } from "./routes/DashboardLayout";
 import { DashboardLayout } from "./routes/DashboardLayout";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
@@ -114,6 +117,12 @@ const DIRECTOR_NAV: NavGroup[] = [
       { to: "/director/guide", label: "Qo'llanma", icon: HelpCircle },
     ],
   },
+  {
+    label: "Hamkorlar",
+    items: [
+      { to: "/director/partners", label: "Hamkorlar ro'yxati", icon: Users },
+    ],
+  },
 ];
 
 const TEACHER_NAV: NavGroup[] = [
@@ -142,6 +151,12 @@ const TEACHER_NAV: NavGroup[] = [
       { to: "/teacher/notifications", label: "Bildirishnomalar", icon: Bell },
       { to: "/teacher/profile", label: "Profil", icon: UserCircle },
       { to: "/teacher/guide", label: "Qo'llanma", icon: HelpCircle },
+    ],
+  },
+  {
+    label: "Hamkorlar",
+    items: [
+      { to: "/teacher/partners", label: "Hamkorlar", icon: Users },
     ],
   },
 ];
@@ -180,6 +195,12 @@ const STUDENT_NAV: NavGroup[] = [
       { to: "/student/notifications", label: "Bildirishnomalar", icon: Bell },
       { to: "/student/profile", label: "Profil", icon: UserCircle },
       { to: "/student/guide", label: "Qo'llanma", icon: HelpCircle },
+    ],
+  },
+  {
+    label: "Hamkorlar",
+    items: [
+      { to: "/student/partners", label: "Hamkorlar", icon: Users },
     ],
   },
 ];
@@ -223,6 +244,7 @@ export default function App() {
         <Route path="profile" element={<DirectorProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="guide" element={<GuidePage />} />
+        <Route path="partners" element={<DirectorPartnersPage />} />
       </Route>
 
       <Route
@@ -245,6 +267,7 @@ export default function App() {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<TeacherProfilePage />} />
         <Route path="guide" element={<GuidePage />} />
+        <Route path="partners" element={<TeacherPartnersPage />} />
       </Route>
 
       <Route
@@ -274,6 +297,7 @@ export default function App() {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<StudentProfilePage />} />
         <Route path="guide" element={<GuidePage />} />
+        <Route path="partners" element={<StudentPartnersPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
