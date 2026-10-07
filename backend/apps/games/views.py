@@ -7,6 +7,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.common.permissions import IsDirector, IsStudent
+from apps.common.tenancy import in_organization
 
 from . import question_service, services
 from .models import GameSession
@@ -35,7 +36,10 @@ class GameSessionViewSet(
 
     def get_queryset(self):
         return (
-            GameSession.objects.filter(student=self.request.user.student_profile)
+            in_organization(
+                self.request.user,
+                GameSession.objects.filter(student=self.request.user.student_profile),
+            )
             .select_related("subject")
             .prefetch_related("remedial_sessions")
         )
@@ -130,11 +134,15 @@ class QuestionPoolViewSet(viewsets.ViewSet):
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated, IsDirector]
 
     def list(self, request):
-        return Response(services.pool_status())
+        return Response(services.pool_status(request.user.active_organization))
 
     @action(detail=False, methods=["post"])
     def refill(self, request):
         serializer = PoolRefillSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        added = services.refill_pool(**serializer.validated_data)
+        # The subject-wide bank has no class to inherit a tenant from, so the
+        # director's own active organization owns it.
+        added = services.refill_pool(
+            **serializer.validated_data, organization=request.user.active_organization
+        )
         return Response({"added": added})

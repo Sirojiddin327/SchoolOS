@@ -4,6 +4,7 @@ from celery import shared_task
 from django.db.models import Count
 
 from apps.academics.models import Subject
+from apps.organizations.models import Organization
 from apps.schools.models import SchoolClass
 
 from . import services
@@ -25,7 +26,7 @@ def refill_low_pools() -> int:
     """
     low_pools = list(
         PooledQuestion.objects.filter(is_active=True)
-        .values("subject", "school_class")
+        .values("subject", "school_class", "organization")
         .annotate(count=Count("id"))
         .filter(count__lt=services.POOL_LOW_THRESHOLD)
     )
@@ -40,12 +41,22 @@ def refill_low_pools() -> int:
     }
     class_ids = {row["school_class"] for row in low_pools if row["school_class"] is not None}
     school_classes = {c.id: c for c in SchoolClass.objects.filter(id__in=class_ids)}
+    organizations = {
+        o.id: o
+        for o in Organization.objects.filter(
+            id__in={row["organization"] for row in low_pools if row["organization"] is not None}
+        )
+    }
 
     refilled = 0
     for row in low_pools:
         subject = subjects[row["subject"]]
         school_class = school_classes.get(row["school_class"])
-        added = services.refill_pool(subject=subject, school_class=school_class)
+        added = services.refill_pool(
+            subject=subject,
+            school_class=school_class,
+            organization=organizations.get(row["organization"]),
+        )
         if added:
             refilled += 1
         else:

@@ -212,7 +212,10 @@ class ClassmateSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "archetype", "avatar_url", "wins", "losses", "rating", "has_open_duel")
 
     def _rating(self, obj):
-        return getattr(obj, "duel_rating", None)
+        """The viewer's-organization rating, prefetched by the viewset as
+        `scoped_duel_ratings` (see `DuelViewSet.opponents`)."""
+        scoped = getattr(obj, "scoped_duel_ratings", None)
+        return scoped[0] if scoped else None
 
     def get_name(self, obj) -> str:
         return services.display_name(obj)

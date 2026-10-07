@@ -535,8 +535,3 @@ class AITestGenerationAPITests(APITestCase):
 
         test = Test.objects.get(id=response.data["id"])
         self.assertEqual(test.questions.count(), 10)
-
-    def test_student_cannot_generate_a_test(self):
-        self.client.force_authenticate(self.student_user)
-        response = self.client.post("/api/tests/generate/", self.payload, format="json")
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

@@ -1,6 +1,8 @@
 from datetime import date, time, timedelta
+
 from django.db.models import Q, QuerySet
 
+from apps.common.tenancy import in_organization
 from apps.school_config.models import SchoolTimeSettings
 
 from .models import Lesson, TimetableSlot
@@ -41,12 +43,16 @@ def generate_lessons_for_week(week_start: date) -> list[Lesson]:
     uniqueness on.
     """
     monday = week_monday(week_start)
-    settings_obj = SchoolTimeSettings.get_solo()
     lessons = []
+    # Slots are not scoped to one tenant, so bell times come from each slot's
+    # own organization rather than from a single global settings row.
+    settings_by_org = {}
 
     for slot in TimetableSlot.objects.select_related("subject", "school_class", "teacher"):
+        if slot.organization_id not in settings_by_org:
+            settings_by_org[slot.organization_id] = SchoolTimeSettings.get_solo(slot.organization)
         lesson_date = monday + timedelta(days=slot.day_of_week - 1)
-        start_time, end_time = settings_obj.period_times(slot.period_number)
+        start_time, end_time = settings_by_org[slot.organization_id].period_times(slot.period_number)
         lesson, _created = Lesson.objects.get_or_create(
             school_class=slot.school_class,
             date=lesson_date,
@@ -76,12 +82,13 @@ def lessons_for_user(user, day: date) -> QuerySet[Lesson]:
         profile = user.student_profile
         if profile.school_class_id is None:
             return Lesson.objects.none()
-        return Lesson.objects.filter(school_class_id=profile.school_class_id, date=day)
+        return in_organization(user, Lesson.objects.filter(school_class_id=profile.school_class_id)).filter(
+            date=day
+        )
 
     if user.is_teacher:
-        return Lesson.objects.filter(
-            Q(teacher=user.teacher_profile) | Q(school_class__class_teacher=user.teacher_profile),
-            date=day,
+        return in_organization(user, Lesson.objects.filter(date=day)).filter(
+            Q(teacher=user.teacher_profile) | Q(school_class__class_teacher=user.teacher_profile)
         ).distinct()
 
     return Lesson.objects.none()
@@ -115,7 +122,7 @@ def format_daily_schedule(user, day: date) -> str:
     Optional details are omitted rather than printed empty — a lesson with no
     room gets no room line, and a teacher is not told their own name back.
     """
-    settings_obj = SchoolTimeSettings.get_solo()
+    settings_obj = SchoolTimeSettings.get_solo(user.active_organization)
     lessons = list(
         lessons_for_user(user, day)
         .select_related("subject", "school_class", "teacher__user")

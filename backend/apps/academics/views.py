@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.permissions import IsDirector, IsDirectorOrReadOnly
+from apps.common.tenancy import in_organization
 
 from . import services
 from .filters import LessonFilter
@@ -37,7 +38,11 @@ class LessonViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Lesson.objects.select_related("subject", "school_class", "teacher__user")
+        # A director sees their own school's lessons, not every school's: the
+        # role says "you manage this tenant", not "you own all of them".
+        queryset = in_organization(
+            user, Lesson.objects.select_related("subject", "school_class", "teacher__user")
+        )
 
         if user.is_director:
             return queryset
@@ -62,8 +67,11 @@ class TimetableSlotViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = TimetableSlot.objects.select_related(
-            "subject", "school_class", "teacher__user", "secondary_teacher__user"
+        queryset = in_organization(
+            user,
+            TimetableSlot.objects.select_related(
+                "subject", "school_class", "teacher__user", "secondary_teacher__user"
+            ),
         )
 
         if user.is_director:

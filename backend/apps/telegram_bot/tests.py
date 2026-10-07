@@ -229,7 +229,7 @@ class ParentTelegramAccountsAPITests(APITestCase):
         ParentTelegramAccount.objects.create(
             student=self.student, telegram_id=111, telegram_username="ota1"
         )
-        other_student_user, other_student = make_student(self.school_class)
+        _other_student_user, other_student = make_student(self.school_class)
         ParentTelegramAccount.objects.create(student=other_student, telegram_id=222)
 
         self.client.force_authenticate(self.student_user)
@@ -247,7 +247,7 @@ class ParentTelegramAccountsAPITests(APITestCase):
         self.assertFalse(ParentTelegramAccount.objects.filter(pk=account.pk).exists())
 
     def test_student_cannot_unlink_another_students_parent_account(self):
-        other_student_user, other_student = make_student(self.school_class)
+        _other_student_user, other_student = make_student(self.school_class)
         account = ParentTelegramAccount.objects.create(student=other_student, telegram_id=111)
         self.client.force_authenticate(self.student_user)
         response = self.client.delete(f"/api/telegram/parent-accounts/{account.id}/")

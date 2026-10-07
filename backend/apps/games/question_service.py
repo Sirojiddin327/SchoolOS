@@ -52,10 +52,17 @@ def subject_has_questions(subject) -> bool:
     return _active_for(subject).exists()
 
 
-def subject_pool_sizes() -> list[dict]:
+def subject_pool_sizes(organization=None) -> list[dict]:
     """Per-subject coverage for the director's question-pool page: one row per
     (subject, class) pair, where an empty class means the subject-wide bank
-    every student of that subject can draw from."""
+    every student of that subject can draw from.
+
+    Scoped to `organization` because a bank belongs to one tenant: a school
+    director has no business seeing how stocked another school's pools are.
+    """
+    pools = PooledQuestion.objects.filter(is_active=True)
+    if organization is not None:
+        pools = pools.filter(organization=organization)
     return [
         {
             "subject": row["subject"],
@@ -64,8 +71,7 @@ def subject_pool_sizes() -> list[dict]:
             "school_class_name": row["school_class__name"],
             "count": row["count"],
         }
-        for row in PooledQuestion.objects.filter(is_active=True)
-        .values("subject", "subject__name", "school_class", "school_class__name")
+        for row in pools.values("subject", "subject__name", "school_class", "school_class__name")
         .annotate(count=Count("id"))
         .order_by("subject__name", "school_class__name")
     ]
@@ -130,8 +136,15 @@ def mark_served(*, student, questions: list[PooledQuestion]) -> None:
     constraint."""
     if not questions:
         return
+    # bulk_create() never calls save(), so the tenant is copied from each
+    # question here rather than by OrganizationScopedMixin.organization_source.
     PooledQuestionServed.objects.bulk_create(
-        (PooledQuestionServed(student=student, question=question) for question in questions),
+        (
+            PooledQuestionServed(
+                student=student, question=question, organization=question.organization
+            )
+            for question in questions
+        ),
         ignore_conflicts=True,
     )
 
@@ -196,6 +209,73 @@ def get_questions(
                 "options": question.options,
                 "correct_index": question.correct_index,
                 "explanation": question.explanation,
+                "subject_id": question.subject_id,
+            }
+        )
+        for question in picked
+    ]
+
+
+def get_questions_all_subjects(
+    *,
+    amount: int,
+    game_type: str = "",
+    difficulty: str = "",
+    student=None,
+) -> list[dict]:
+    """`amount` questions drawn from ALL subjects (mixed).
+    
+    Used for "Hamma fanlar" mode where the student gets a mix of questions
+    from different subjects in a single game.
+    """
+    if amount <= 0:
+        return []
+
+    school_class = student.school_class if student is not None and student.school_class_id else None
+
+    # Get all active questions across all subjects
+    base_qs = PooledQuestion.objects.filter(is_active=True)
+    if school_class:
+        # Prefer questions from student's class, then subject-wide, then other classes
+        class_qs = base_qs.filter(school_class=school_class)
+        subject_wide_qs = base_qs.filter(school_class__isnull=True)
+        other_qs = base_qs.exclude(school_class=school_class).exclude(school_class__isnull=True)
+        tiers = [class_qs, subject_wide_qs, other_qs]
+    else:
+        subject_wide_qs = base_qs.filter(school_class__isnull=True)
+        class_qs = base_qs.exclude(school_class__isnull=True)
+        tiers = [subject_wide_qs, class_qs]
+
+    if not any(tier.exists() for tier in tiers):
+        raise NoQuestionsAvailable(None)
+
+    served_ids: set[int] = set()
+    if student is not None:
+        served_ids = set(
+            PooledQuestionServed.objects.filter(
+                student=student, question__is_active=True
+            ).values_list("question_id", flat=True)
+        )
+
+    needed = amount
+    picked: list[PooledQuestion] = []
+    for tier in tiers:
+        picked += _draw(tier, served_ids=served_ids, needed=needed)
+        needed -= len(picked)
+        if needed <= 0:
+            break
+
+    if student is not None:
+        mark_served(student=student, questions=picked)
+
+    return [
+        shuffle_options(
+            {
+                "text": question.text,
+                "options": question.options,
+                "correct_index": question.correct_index,
+                "explanation": question.explanation,
+                "subject_id": question.subject_id,
             }
         )
         for question in picked
@@ -205,6 +285,7 @@ def get_questions(
 __all__ = [
     "NoQuestionsAvailable",
     "get_questions",
+    "get_questions_all_subjects",
     "mark_served",
     "subject_availability",
     "subject_has_questions",

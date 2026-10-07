@@ -19,4 +19,4 @@ class SchoolTimeSettingsView(RetrieveUpdateAPIView):
         return [IsAuthenticated()]
 
     def get_object(self):
-        return SchoolTimeSettings.get_solo()
+        return SchoolTimeSettings.get_solo(self.request.user.active_organization)

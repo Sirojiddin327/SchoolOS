@@ -183,3 +183,29 @@ class ClassReportAISummaryView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         return Response({"summary": summary, "generated_at": timezone.now()})
+
+
+class SchoolReportView(APIView):
+    """Whole-school student progress report — all students across all classes.
+    Director only."""
+
+    permission_classes: ClassVar[list[type[BasePermission]]] = [IsDirector]
+
+    def get(self, request):
+        return Response(reports.build_school_report(days=_report_period(request)))
+
+
+class SchoolReportAISummaryView(APIView):
+    """AI-written summary of the whole-school report. Director only."""
+
+    permission_classes: ClassVar[list[type[BasePermission]]] = [IsDirector]
+
+    def post(self, request):
+        report = reports.build_school_report(days=_report_period(request))
+        summary = reports.ai_school_summary(report, refresh=bool(request.data.get("refresh")))
+        if summary is None:
+            return Response(
+                {"detail": "AI hozircha javob bera olmadi. Birozdan so'ng qayta urinib ko'ring."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return Response({"summary": summary, "generated_at": timezone.now()})

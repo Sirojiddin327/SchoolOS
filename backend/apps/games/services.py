@@ -278,7 +278,16 @@ def pick_session_questions(session: GameSession) -> list[dict] | None:
     quietly burning pool capacity for a set of questions nobody ever played.
     """
     if session.questions:
-        return session.questions
+        # Validate that existing questions match the session's subject (if any)
+        if session.questions and session.subject:
+            expected_subject_id = session.subject_id
+            for q in session.questions:
+                if q.get("subject_id") and q["subject_id"] != expected_subject_id:
+                    # Questions don't match subject - clear them to re-draw
+                    session.questions = []
+                    break
+        if session.questions:
+            return session.questions
 
     with transaction.atomic():
         # A separate, lock-held copy — `session` (the caller's object) is kept
@@ -292,15 +301,32 @@ def pick_session_questions(session: GameSession) -> list[dict] | None:
 
         needed = question_count_for(locked.game_type, locked.difficulty)
         try:
-            questions = question_service.get_questions(
-                subject=locked.subject,
-                amount=needed,
-                game_type=locked.game_type,
-                difficulty=locked.difficulty,
-                student=locked.student,
-            )
+            if locked.subject:
+                questions = question_service.get_questions(
+                    subject=locked.subject,
+                    amount=needed,
+                    game_type=locked.game_type,
+                    difficulty=locked.difficulty,
+                    student=locked.student,
+                )
+            else:
+                # "All subjects" mode: draw questions from all subjects
+                questions = question_service.get_questions_all_subjects(
+                    amount=needed,
+                    game_type=locked.game_type,
+                    difficulty=locked.difficulty,
+                    student=locked.student,
+                )
         except question_service.NoQuestionsAvailable:
             return None
+
+        # Double-check: all questions must belong to the session's subject (if any)
+        if locked.subject:
+            expected_subject_id = locked.subject_id
+            for q in questions:
+                if q.get("subject_id") and q["subject_id"] != expected_subject_id:
+                    # This should never happen if question_service is correct, but guard anyway
+                    return None
 
         locked.questions = questions
         locked.save(update_fields=["questions", "updated_at"])
@@ -309,7 +335,11 @@ def pick_session_questions(session: GameSession) -> list[dict] | None:
 
 
 def refill_pool(
-    *, subject: Subject, school_class: SchoolClass | None = None, batch_size: int = POOL_REFILL_BATCH
+    *,
+    subject: Subject,
+    school_class: SchoolClass | None = None,
+    organization=None,
+    batch_size: int = POOL_REFILL_BATCH,
 ) -> int:
     """The *only* place apps.games talks to Gemini — one batched call that tops
     up a subject's bank. Called either by a director's manual "to'ldirish"
@@ -324,7 +354,19 @@ def refill_pool(
     Returns how many questions were actually added (0 if Gemini was unavailable
     or returned something unusable — same "fail quiet" contract as
     `call_gemini` itself).
+
+    A class-scoped bank inherits its tenant from that class; the subject-wide
+    bank has no class to inherit from, so `organization` is required there.
+    `bulk_create` bypasses `save()`, so the column is set explicitly rather than
+    left to `PooledQuestion.organization_source`.
     """
+    target_organization = organization or (school_class.organization if school_class else None)
+    if target_organization is None:
+        raise ValueError(
+            "refill_pool needs an organization for the subject-wide bank — "
+            "a school_class-scoped bank inherits it from the class."
+        )
+
     game_label = "mashq"
     scope = f"{school_class.name} sinf darajasida" if school_class else "barcha sinf darajasida"
     prompt = (
@@ -346,7 +388,7 @@ def refill_pool(
     try:
         raw_questions = json.loads(content)["questions"]
         if not isinstance(raw_questions, list):
-            raise ValueError
+            raise TypeError
     except (json.JSONDecodeError, KeyError, TypeError, ValueError):
         logger.warning("Could not parse Gemini pool-refill JSON for %s / %s", subject, school_class)
         return 0
@@ -367,6 +409,7 @@ def refill_pool(
         PooledQuestion(
             subject=subject,
             school_class=school_class,
+            organization=target_organization,
             text=q["text"],
             options=q["options"],
             correct_index=q["correct_index"],
@@ -377,14 +420,14 @@ def refill_pool(
     return len(created)
 
 
-def pool_status() -> list[dict]:
+def pool_status(organization=None) -> list[dict]:
     """Every (subject, class) bank that has at least one active question, with
     its current size — powers the director's pool-management page. A subject
     with no questions at all simply doesn't appear here; a director bootstraps
     it with the manual refill action instead. An empty class name is the
     subject-wide bank, shared by every student of that subject.
     """
-    return question_service.subject_pool_sizes()
+    return question_service.subject_pool_sizes(organization)
 
 
 def check_answer(*, session: GameSession, question_index: int, selected_index: int) -> bool:

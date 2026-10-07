@@ -1,10 +1,12 @@
+from typing import ClassVar
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.models import TimeStampedModel
+from apps.common.models import OrganizationScopedMixin, TimeStampedModel
 
 
-class Duel(TimeStampedModel):
+class Duel(OrganizationScopedMixin, TimeStampedModel):
     """A 1-v-1 knowledge battle — against a classmate (an invitation they
     accept, then a synchronized match) or against an AI opponent (starts at
     once). Both sides get the same question snapshot, drawn from the games'
@@ -17,6 +19,8 @@ class Duel(TimeStampedModel):
     a participant table, since a duel only ever has exactly two sides. An AI
     duel has no `opponent`; the AI's side is simulated deterministically.
     """
+
+    organization_source = "school_class.organization"
 
     class Mode(models.TextChoices):
         CLASSMATE = "CLASSMATE", _("Classmate")
@@ -45,6 +49,12 @@ class Duel(TimeStampedModel):
         OPPONENT = "OPPONENT", _("Opponent won")
         DRAW = "DRAW", _("Draw")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="duels",
+        on_delete=models.CASCADE,
+    )
     mode = models.CharField(_("mode"), max_length=12, choices=Mode.choices, default=Mode.CLASSMATE)
     ai_level = models.CharField(_("AI level"), max_length=10, choices=AILevel.choices, blank=True, default="")
     challenger = models.ForeignKey(
@@ -110,16 +120,27 @@ class Duel(TimeStampedModel):
         return None
 
 
-class DuelRating(TimeStampedModel):
+class DuelRating(OrganizationScopedMixin, TimeStampedModel):
     """A student's duel ELO-lite rating and win/loss/draw tally — separate from
     `StudentProfile` the same way `Streak` is. The rating only moves on
     classmate duels; the tallies count every finished duel.
+
+    Like `Streak`, this is per (organization, student): a student who duels at
+    school must not carry that rating into a club's ranking.
     """
+
+    organization_source = "student.organization"
 
     DEFAULT_RATING = 1000
 
-    student = models.OneToOneField(
-        "users.StudentProfile", verbose_name=_("student"), related_name="duel_rating", on_delete=models.CASCADE
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="duel_ratings",
+        on_delete=models.CASCADE,
+    )
+    student = models.ForeignKey(
+        "users.StudentProfile", verbose_name=_("student"), related_name="duel_ratings", on_delete=models.CASCADE
     )
     rating = models.PositiveIntegerField(_("rating"), default=DEFAULT_RATING)
     wins = models.PositiveIntegerField(_("wins"), default=0)
@@ -130,6 +151,11 @@ class DuelRating(TimeStampedModel):
         verbose_name = _("duel rating")
         verbose_name_plural = _("duel ratings")
         ordering = ("-rating",)
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "student"], name="unique_duel_rating_per_student_org"
+            ),
+        ]
 
     def __str__(self) -> str:
-        return f"{self.student} — {self.rating}"
+        return f"{self.student} @ {self.organization} — {self.rating}"

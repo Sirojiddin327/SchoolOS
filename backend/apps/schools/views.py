@@ -7,6 +7,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
 from apps.common.permissions import IsDirectorOrReadOnly
+from apps.common.tenancy import in_organization, students_in_organization
 
 from .models import SchoolClass
 from .serializers import SchoolClassSerializer, StudentRosterSerializer
@@ -22,7 +23,9 @@ class SchoolClassViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = SchoolClass.objects.select_related("class_teacher__user")
+        queryset = in_organization(
+            user, SchoolClass.objects.select_related("class_teacher__user")
+        )
 
         if user.is_director:
             return queryset
@@ -39,6 +42,10 @@ class SchoolClassViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get"])
     def students(self, request, pk=None):
         school_class = self.get_object()
-        roster = school_class.students.select_related("user").order_by("user__first_name")
+        roster = (
+            students_in_organization(request.user, school_class.students)
+            .select_related("user")
+            .order_by("user__first_name")
+        )
         serializer = StudentRosterSerializer(roster, many=True)
         return Response(serializer.data)

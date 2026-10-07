@@ -8,6 +8,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.common.permissions import IsDirector, IsStudent, IsTeacher
+from apps.common.tenancy import in_organization
 from apps.remedial.services import maybe_start_remedial_session
 
 from . import services
@@ -55,8 +56,11 @@ class TestViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Test.objects.select_related("subject", "school_class", "teacher__user").prefetch_related(
-            "questions__options"
+        queryset = in_organization(
+            user,
+            Test.objects.select_related("subject", "school_class", "teacher__user").prefetch_related(
+                "questions__options"
+            ),
         )
 
         if user.is_director:
@@ -174,7 +178,9 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Question.objects.select_related("test")
+        queryset = in_organization(
+            user, Question.objects.select_related("test"), field="test__organization"
+        )
         if user.is_director:
             return queryset
         if user.is_teacher:
@@ -189,7 +195,9 @@ class OptionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Option.objects.select_related("question__test")
+        queryset = in_organization(
+            user, Option.objects.select_related("question__test"), field="question__test__organization"
+        )
         if user.is_director:
             return queryset
         if user.is_teacher:
@@ -204,9 +212,9 @@ class MyAttemptsView(generics.ListAPIView):
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated, IsStudent]
 
     def get_queryset(self):
-        return TestAttempt.objects.select_related("test").filter(
-            student=self.request.user.student_profile
-        )
+        return in_organization(
+            self.request.user, TestAttempt.objects.select_related("test")
+        ).filter(student=self.request.user.student_profile)
 
 
 class ActivityViewSet(viewsets.ModelViewSet):
@@ -229,7 +237,9 @@ class ActivityViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Activity.objects.select_related("subject", "school_class", "teacher__user")
+        queryset = in_organization(
+            user, Activity.objects.select_related("subject", "school_class", "teacher__user")
+        )
 
         if user.is_director:
             return queryset
@@ -300,8 +310,9 @@ class ActivitySubmissionViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewS
 
     def get_queryset(self):
         user = self.request.user
-        queryset = ActivitySubmission.objects.select_related(
-            "activity__teacher", "student__user", "result"
+        queryset = in_organization(
+            user,
+            ActivitySubmission.objects.select_related("activity__teacher", "student__user", "result"),
         )
         if user.is_director:
             return queryset
@@ -338,6 +349,6 @@ class MyActivitySubmissionsView(generics.ListAPIView):
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated, IsStudent]
 
     def get_queryset(self):
-        return ActivitySubmission.objects.select_related("activity", "result").filter(
-            student=self.request.user.student_profile
-        )
+        return in_organization(
+            self.request.user, ActivitySubmission.objects.select_related("activity", "result")
+        ).filter(student=self.request.user.student_profile)

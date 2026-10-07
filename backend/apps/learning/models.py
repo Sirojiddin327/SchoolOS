@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.models import TimeStampedModel
+from apps.common.models import OrganizationScopedMixin, TimeStampedModel
 
 # A subject that only meets this many times a week (or fewer) in a class gets a
 # capped, standard-size test instead of an open-ended one — enforced for manual
@@ -14,12 +14,28 @@ LOW_FREQUENCY_WEEKLY_LESSON_THRESHOLD = 2
 LOW_FREQUENCY_QUESTION_CAP = 10
 
 
-class Test(TimeStampedModel):
+class Test(OrganizationScopedMixin, TimeStampedModel):
     """A teacher-authored quiz for one class. The teacher sets `max_xp`; the
     actual XP a student earns is always `max_xp * score_percent / 100`,
     computed server-side in `services.grade_attempt` — never entered by hand.
+
+    `organization` is denormalized from `school_class` on purpose: it is
+    redundant, but it makes every queryset filterable by tenant without a join,
+    and it can never disagree with the class because it is only ever copied
+    from it at creation. Same reasoning for `Activity` and `ActivitySubmission`
+    below. `Question`/`Option`/`TestAnswer` get no such column — they are only
+    ever reached through an already-scoped parent, and a third redundant copy
+    would be one more thing to keep in step for no query saved.
     """
 
+    organization_source = "school_class.organization"
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="tests",
+        on_delete=models.CASCADE,
+    )
     title = models.CharField(_("title"), max_length=255)
     description = models.TextField(_("description"), blank=True)
     subject = models.ForeignKey(
@@ -76,15 +92,23 @@ class Option(TimeStampedModel):
         return self.text
 
 
-class TestAttempt(TimeStampedModel):
+class TestAttempt(OrganizationScopedMixin, TimeStampedModel):
     """One row per (test, student), ever — the unique constraint below is what
     prevents retakes/duplicate submissions.
     """
+
+    organization_source = "test.organization"
 
     class Status(models.TextChoices):
         IN_PROGRESS = "IN_PROGRESS", _("In progress")
         SUBMITTED = "SUBMITTED", _("Submitted")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="test_attempts",
+        on_delete=models.CASCADE,
+    )
     test = models.ForeignKey(Test, verbose_name=_("test"), related_name="attempts", on_delete=models.CASCADE)
     student = models.ForeignKey(
         "users.StudentProfile",
@@ -130,7 +154,7 @@ class TestAnswer(TimeStampedModel):
         return f"{self.attempt} — {self.question}"
 
 
-class Activity(TimeStampedModel):
+class Activity(OrganizationScopedMixin, TimeStampedModel):
     """A non-test assignment — the generic slot for whatever gamified thing
     isn't a multiple-choice `Test`: an assignment, a typing/coding challenge,
     a sports drill, a practical task, etc. Unlike `Test`, an `Activity` isn't
@@ -138,6 +162,8 @@ class Activity(TimeStampedModel):
     always computed from that score, never entered directly (see
     `services.grade_submission`).
     """
+
+    organization_source = "school_class.organization"
 
     class ActivityType(models.TextChoices):
         ASSIGNMENT = "ASSIGNMENT", _("Assignment")
@@ -151,6 +177,12 @@ class Activity(TimeStampedModel):
         PUBLISHED = "PUBLISHED", _("Published")
         CLOSED = "CLOSED", _("Closed")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="activities",
+        on_delete=models.CASCADE,
+    )
     title = models.CharField(_("title"), max_length=255)
     description = models.TextField(_("description"), blank=True)
     subject = models.ForeignKey(
@@ -184,9 +216,17 @@ class Activity(TimeStampedModel):
         return not (self.end_date and today > self.end_date)
 
 
-class ActivitySubmission(TimeStampedModel):
+class ActivitySubmission(OrganizationScopedMixin, TimeStampedModel):
     """One row per (activity, student), ever — same one-shot rule as `TestAttempt`."""
 
+    organization_source = "activity.organization"
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="activity_submissions",
+        on_delete=models.CASCADE,
+    )
     activity = models.ForeignKey(
         Activity, verbose_name=_("activity"), related_name="submissions", on_delete=models.CASCADE
     )
@@ -212,11 +252,19 @@ class ActivitySubmission(TimeStampedModel):
         return f"{self.student} — {self.activity}"
 
 
-class ActivityResult(TimeStampedModel):
+class ActivityResult(OrganizationScopedMixin, TimeStampedModel):
     """The graded outcome of a submission — kept separate from `ActivitySubmission`
     so 'what the student sent in' and 'how it was scored' are two auditable things.
     """
 
+    organization_source = "submission.organization"
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="activity_results",
+        on_delete=models.CASCADE,
+    )
     submission = models.OneToOneField(
         ActivitySubmission, verbose_name=_("submission"), related_name="result", on_delete=models.CASCADE
     )

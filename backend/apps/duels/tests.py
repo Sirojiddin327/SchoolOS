@@ -4,9 +4,15 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.common.testing import make_school_class, make_student, make_subject, make_teacher
-from apps.gamification.models import XPTransaction
+from apps.common.testing import (
+    default_organization,
+    make_school_class,
+    make_student,
+    make_subject,
+    make_teacher,
+)
 from apps.games.models import PooledQuestion
+from apps.gamification.models import XPTransaction
 from apps.notifications.models import Notification
 
 from .models import Duel, DuelRating
@@ -14,10 +20,12 @@ from .services import answer, create_duel, mark_ready, open_question, rematch, r
 
 
 def seed_question_pool(*, subject, school_class, count: int = 15) -> list[PooledQuestion]:
+    organization = school_class.organization if school_class else default_organization()
     return PooledQuestion.objects.bulk_create(
         PooledQuestion(
             subject=subject,
             school_class=school_class,
+            organization=organization,
             text=f"Savol {i}",
             options=["a", "b", "c", "d"],
             correct_index=i % 4,
@@ -192,7 +200,7 @@ class DuelServiceTests(APITestCase):
         begin_match(duel=duel, challenger=self.a, opponent=self.b)
 
         # Start-angled: a answers every question correctly but slowly...
-        for index in range(due_question_count := duel.question_count):
+        for index in range(duel.question_count):
             open_question(duel=duel, student=self.a)
             duel.refresh_from_db()
             answer(duel=duel, student=self.a, question_index=index, selected_index=duel.questions[index]["correct_index"])

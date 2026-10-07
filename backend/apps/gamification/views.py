@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.permissions import IsDirector, IsStudent
+from apps.common.tenancy import in_organization, students_in_organization
 from apps.schools.models import SchoolClass
 from apps.users.models import StudentProfile
 
@@ -33,7 +34,11 @@ class XPHistoryView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = XPTransaction.objects.select_related("student__user")
+        # Scope first, then narrow: a director's ledger is their school's, not
+        # every school's, and the `?student=` filter must not escape that.
+        queryset = in_organization(
+            user, XPTransaction.objects.select_related("student__user")
+        )
         student_id = self.request.query_params.get("student")
 
         if user.is_student:
@@ -60,9 +65,10 @@ class StudentLeaderboardView(generics.ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        return StudentProfile.objects.select_related("user", "school_class").order_by(
-            "-total_xp", "user__first_name"
-        )
+        return students_in_organization(
+            self.request.user,
+            StudentProfile.objects.select_related("user", "school_class"),
+        ).order_by("-total_xp", "user__first_name")
 
     def list(self, request, *args, **kwargs):
         ranked = [
@@ -78,7 +84,9 @@ class ClassLeaderboardView(generics.ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        return SchoolClass.objects.order_by("-total_xp", "name")
+        return in_organization(
+            self.request.user, SchoolClass.objects.all()
+        ).order_by("-total_xp", "name")
 
     def list(self, request, *args, **kwargs):
         ranked = [
@@ -152,7 +160,9 @@ class AchievementListView(generics.ListAPIView):
         student_profile = getattr(self.request.user, "student_profile", None)
         context["unlocked"] = (
             dict(
-                StudentAchievement.objects.filter(student=student_profile).values_list(
+                in_organization(
+                    self.request.user, StudentAchievement.objects.filter(student=student_profile)
+                ).values_list(
                     "achievement_id", "unlocked_at"
                 )
             )

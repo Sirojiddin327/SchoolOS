@@ -27,6 +27,18 @@ class Notification(TimeStampedModel):
         related_name="notifications",
         on_delete=models.CASCADE,
     )
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="notifications",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text=_(
+            "Which organization raised this notification. Required for anything "
+            "generated inside one; NULL is reserved for platform-level messages."
+        ),
+    )
     title = models.CharField(_("title"), max_length=255)
     body = models.TextField(_("body"))
     category = models.CharField(

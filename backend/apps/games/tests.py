@@ -8,7 +8,9 @@ from django.core.management.base import CommandError
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.academics.models import Subject
 from apps.common.testing import (
+    default_organization,
     make_director,
     make_lesson,
     make_school_class,
@@ -16,7 +18,6 @@ from apps.common.testing import (
     make_subject,
     make_teacher,
 )
-from apps.academics.models import Subject
 from apps.gamification.models import XPTransaction
 
 from .models import GameSession, PooledQuestion
@@ -61,10 +62,12 @@ def _questions_payload(count: int) -> str:
 def _seed_pool(*, subject, school_class, count: int, prefix: str = "Savol") -> list[PooledQuestion]:
     """`school_class=None` seeds the subject-wide bank. `prefix` keeps two banks
     of the same subject distinguishable in assertions."""
+    organization = school_class.organization if school_class else default_organization()
     return PooledQuestion.objects.bulk_create(
         PooledQuestion(
             subject=subject,
             school_class=school_class,
+            organization=organization,
             text=f"{prefix} {i}",
             options=["a", "b", "c", "d"],
             correct_index=i % 4,
@@ -1185,7 +1188,7 @@ class UniversalSubjectQuestionBankTests(APITestCase):
             for game_type in self.ALL_GAMES:
                 difficulty = "EASY" if game_type in ("TOWER_DEFENSE", "NEON_RACING") else ""
                 with self.subTest(subject=name, game=game_type):
-                    session, response = self._questions_for(
+                    _session, response = self._questions_for(
                         subject=subject, game_type=game_type, difficulty=difficulty
                     )
                     self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -1237,7 +1240,7 @@ class UniversalSubjectQuestionBankTests(APITestCase):
     def test_empty_subject_reports_a_proper_empty_state_not_a_generic_error(self):
         unstocked = make_subject("Kimyo")
 
-        session, response = self._questions_for(subject=unstocked, game_type=GameSession.GameType.QUIZ)
+        _session, response = self._questions_for(subject=unstocked, game_type=GameSession.GameType.QUIZ)
 
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
         self.assertEqual(response.data["code"], "no_questions_for_subject")
@@ -1318,7 +1321,15 @@ class SeedQuestionBankCommandTests(APITestCase):
 
     def _run(self, *args) -> str:
         out = StringIO()
-        call_command("seed_game_questions", *args, stdout=out)
+        # The subject-wide bank has no class to inherit a tenant from, so the
+        # command needs its owner named.
+        call_command(
+            "seed_game_questions",
+            *args,
+            "--organization",
+            default_organization().slug,
+            stdout=out,
+        )
         return out.getvalue()
 
     def test_defaults_to_the_subject_wide_bank(self):

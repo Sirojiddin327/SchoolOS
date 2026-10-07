@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -134,10 +134,20 @@ class DuelViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retriev
     def opponents(self, request):
         """Classmates you're allowed to challenge (same class only)."""
         profile = request.user.student_profile
+        # Ratings are per (organization, student), so pin them to the viewer's
+        # own organization — a rating earned at school is not a club's ranking.
+        organization = request.user.active_organization
         classmates = (
             StudentProfile.objects.filter(school_class_id=profile.school_class_id, user__is_active=True)
             .exclude(pk=profile.pk)
-            .select_related("user", "duel_rating")
+            .select_related("user")
+            .prefetch_related(
+                Prefetch(
+                    "duel_ratings",
+                    queryset=DuelRating.objects.filter(organization=organization),
+                    to_attr="scoped_duel_ratings",
+                )
+            )
             .order_by("user__first_name", "user__last_name")
         )
         open_with = set()

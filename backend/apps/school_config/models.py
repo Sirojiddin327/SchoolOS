@@ -7,14 +7,26 @@ from apps.common.models import TimeStampedModel
 
 
 class SchoolTimeSettings(TimeStampedModel):
-    """Singleton: school-day timing.
+    """School-day timing for exactly one organization.
 
     `start_time`/`end_time` gate the School Time Lock (see middleware.py).
     The period-timing fields let the timetable auto-compute each period's
     start/end time from just a period number, instead of the director typing
     times for every single slot.
+
+    This was a `pk = 1` singleton. It is now one row per organization, enforced
+    by a real `OneToOneField` — the old `save()` override silently rewrote every
+    row to pk 1, which would have collapsed all organizations onto one another's
+    timings. `get_solo()` still creates the row on demand, so callers that
+    already treat the settings as always-present keep working.
     """
 
+    organization = models.OneToOneField(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="time_settings",
+        on_delete=models.CASCADE,
+    )
     start_time = models.TimeField(_("school start time"), default=time(8, 0))
     end_time = models.TimeField(_("school end time"), default=time(13, 10))
 
@@ -32,18 +44,18 @@ class SchoolTimeSettings(TimeStampedModel):
         verbose_name_plural = _("school time settings")
 
     def __str__(self) -> str:
-        return f"{self.start_time:%H:%M}–{self.end_time:%H:%M}"
-
-    def save(self, *args, **kwargs):
-        self.pk = 1
-        super().save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        return None
+        return f"{self.organization}: {self.start_time:%H:%M}–{self.end_time:%H:%M}"
 
     @classmethod
-    def get_solo(cls) -> "SchoolTimeSettings":
-        obj, _created = cls.objects.get_or_create(pk=1)
+    def get_solo(cls, organization) -> "SchoolTimeSettings":
+        """The settings for `organization`, created with defaults if absent.
+
+        `organization` is required — there is no "the" settings row any more,
+        and defaulting to one would hand a club the school's bell times.
+        """
+        if organization is None:
+            raise ValueError("SchoolTimeSettings.get_solo() requires an organization.")
+        obj, _created = cls.objects.get_or_create(organization=organization)
         return obj
 
     def is_locked_at(self, current_time) -> bool:

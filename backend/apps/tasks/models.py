@@ -4,14 +4,16 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.models import TimeStampedModel
+from apps.common.models import OrganizationScopedMixin, TimeStampedModel
 
 
-class TeacherTask(TimeStampedModel):
+class TeacherTask(OrganizationScopedMixin, TimeStampedModel):
     """A director-authored directive for teachers — administrative, not academic
     (grading/tests/activities are the teacher-to-student side, handled in `apps.learning`).
     Fans out into one `TeacherTaskAssignment` per targeted teacher (see `services.assign_task`).
     """
+
+    organization_source = "created_by.active_organization"
 
     class Category(models.TextChoices):
         ADMINISTRATIVE = "ADMINISTRATIVE", _("Ma'muriy")
@@ -19,6 +21,12 @@ class TeacherTask(TimeStampedModel):
         MEETING = "MEETING", _("Yig'ilish")
         OTHER = "OTHER", _("Boshqa")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="teacher_tasks",
+        on_delete=models.CASCADE,
+    )
     title = models.CharField(_("title"), max_length=255)
     description = models.TextField(_("description"), blank=True)
     category = models.CharField(
@@ -42,9 +50,17 @@ class TeacherTask(TimeStampedModel):
         return self.title
 
 
-class TeacherTaskAssignment(TimeStampedModel):
+class TeacherTaskAssignment(OrganizationScopedMixin, TimeStampedModel):
     """One row per (task, teacher) — the recipient's copy, and where completion is tracked."""
 
+    organization_source = "task.organization"
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="teacher_task_assignments",
+        on_delete=models.CASCADE,
+    )
     task = models.ForeignKey(
         TeacherTask, verbose_name=_("task"), related_name="assignments", on_delete=models.CASCADE
     )

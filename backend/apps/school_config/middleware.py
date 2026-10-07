@@ -30,8 +30,8 @@ class SchoolTimeLockMiddleware:
         self.jwt_authenticator = JWTAuthentication()
 
     def __call__(self, request):
-        if self._is_locked_out(request):
-            settings_obj = SchoolTimeSettings.get_solo()
+        settings_obj = self._locked_settings(request)
+        if settings_obj is not None:
             return JsonResponse(
                 {
                     "detail": (
@@ -43,18 +43,28 @@ class SchoolTimeLockMiddleware:
             )
         return self.get_response(request)
 
-    def _is_locked_out(self, request) -> bool:
+    def _locked_settings(self, request) -> SchoolTimeSettings | None:
+        """The student's own organization's settings, if they're locked out.
+
+        Returns the settings row rather than a bool so the lock message can name
+        that organization's bell time — timings are per organization, and
+        reusing another school's would tell a student the wrong hour.
+        """
         if not request.path.startswith("/api/"):
-            return False
+            return None
         if request.path.startswith(EXEMPT_PATH_PREFIXES):
-            return False
+            return None
 
         user = self._authenticate(request)
         if user is None or not user.is_authenticated or not user.is_student:
-            return False
+            return None
 
-        settings_obj = SchoolTimeSettings.get_solo()
-        return settings_obj.is_locked_at(timezone.localtime().time())
+        organization = user.active_organization
+        if organization is None:
+            return None
+
+        settings_obj = SchoolTimeSettings.get_solo(organization)
+        return settings_obj if settings_obj.is_locked_at(timezone.localtime().time()) else None
 
     def _authenticate(self, request):
         try:

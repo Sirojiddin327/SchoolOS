@@ -120,7 +120,7 @@ class GameQuestionSerializer(serializers.Serializer):
 
 
 class GameSessionCreateSerializer(serializers.Serializer):
-    subject = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all())
+    subject = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all(), required=False, allow_null=True)
     game_type = serializers.ChoiceField(choices=GameSession.GameType.choices)
     # Only games with levels use it (Tower Defense); ignored by the rest.
     difficulty = serializers.ChoiceField(choices=GameSession.Difficulty.choices, required=False)
@@ -129,7 +129,7 @@ class GameSessionCreateSerializer(serializers.Serializer):
         student = self.context["request"].user.student_profile
         return services.start_game(
             student=student,
-            subject=validated_data["subject"],
+            subject=validated_data.get("subject"),
             game_type=validated_data["game_type"],
             difficulty=validated_data.get("difficulty", ""),
         )

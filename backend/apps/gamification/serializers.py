@@ -41,7 +41,8 @@ class StudentLeaderboardSerializer(serializers.Serializer):
     total_xp = serializers.SerializerMethodField()
 
     def get_name(self, obj) -> str:
-        return str(obj["student"])
+        student = obj["student"]
+        return student.user.get_full_name() or student.user.username
 
     def get_avatar_url(self, obj) -> str | None:
         avatar = obj["student"].user.avatar

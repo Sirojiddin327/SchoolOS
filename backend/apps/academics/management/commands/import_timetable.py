@@ -9,11 +9,13 @@ school timetable (08:00–08:45, 08:50–09:35, ... 12:25–13:10).
 from django.core.management.base import BaseCommand, CommandError
 
 from apps.academics.models import Subject, TimetableSlot
+from apps.organizations.models import Organization, OrganizationMembership
 from apps.schools.models import SchoolClass
 from apps.users.models import TeacherProfile, User
 
 DEFAULT_CLASS = "9-V"
 DEFAULT_PASSWORD = "teacher123"
+DEFAULT_ORGANIZATION_SLUG = "main-school"
 
 # slug -> display name
 TEACHERS = {
@@ -100,17 +102,31 @@ class Command(BaseCommand):
         parser.add_argument("--class", dest="class_name", default=DEFAULT_CLASS)
         parser.add_argument("--password", default=DEFAULT_PASSWORD)
         parser.add_argument("--must-change", action="store_true")
+        parser.add_argument(
+            "--organization",
+            default=DEFAULT_ORGANIZATION_SLUG,
+            help="Timetable qaysi maktabga tegishli (slug).",
+        )
 
     def handle(self, *args, **options):
         class_name = options["class_name"]
         password = options["password"]
         must_change = options["must_change"]
 
-        school_class, _ = SchoolClass.objects.get_or_create(name=class_name)
+        try:
+            organization = Organization.objects.get(slug=options["organization"])
+        except Organization.DoesNotExist:
+            raise CommandError(
+                f"'{options['organization']}' slug'li maktab topilmadi."
+            ) from None
+
+        school_class, _ = SchoolClass.objects.get_or_create(
+            organization=organization, name=class_name
+        )
 
         for slug, display_name in TEACHERS.items():
             email = f"{slug}@school.uz"
-            user, created = User.objects.get_or_create(
+            user, _ = User.objects.get_or_create(
                 email=email,
                 defaults={
                     "username": slug,
@@ -122,8 +138,16 @@ class Command(BaseCommand):
             user.first_name = display_name
             user.set_password(password)
             user.must_change_password = must_change
+            user.active_organization = organization
             user.save()
             TeacherProfile.objects.get_or_create(user=user)
+            # Teachers are only "in" a school through a membership — that role,
+            # not User.role, is what the permission classes read.
+            OrganizationMembership.objects.get_or_create(
+                user=user,
+                organization=organization,
+                defaults={"role": OrganizationMembership.Role.TEACHER, "status": "ACTIVE"},
+            )
 
         subjects = []
         for day, slots in SCHEDULE.items():
@@ -142,7 +166,7 @@ class Command(BaseCommand):
                     if secondary_slugs and secondary_slugs[0]
                     else None
                 )
-                slot, _ = TimetableSlot.objects.update_or_create(
+                TimetableSlot.objects.update_or_create(
                     school_class=school_class,
                     day_of_week=day,
                     period_number=period,

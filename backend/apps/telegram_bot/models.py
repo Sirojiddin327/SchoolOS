@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -72,7 +74,7 @@ class ParentTelegramAccount(TimeStampedModel):
     class Meta:
         verbose_name = _("parent telegram account")
         verbose_name_plural = _("parent telegram accounts")
-        constraints = [
+        constraints: ClassVar[list] = [
             models.UniqueConstraint(
                 fields=["student", "telegram_id"], name="unique_parent_telegram_link"
             )

@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -5,9 +7,15 @@ from apps.common.models import TimeStampedModel
 
 
 class SchoolClass(TimeStampedModel):
-    """A class of students, e.g. '9-V'."""
+    """A class of students, e.g. '9-V'. Always belongs to exactly one organization."""
 
-    name = models.CharField(_("name"), max_length=50, unique=True)
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="classes",
+        on_delete=models.CASCADE,
+    )
+    name = models.CharField(_("name"), max_length=50)
     class_teacher = models.ForeignKey(
         "users.TeacherProfile",
         verbose_name=_("class teacher"),
@@ -26,6 +34,11 @@ class SchoolClass(TimeStampedModel):
         verbose_name = _("school class")
         verbose_name_plural = _("school classes")
         ordering = ("name",)
+        constraints: ClassVar[list] = [
+            models.UniqueConstraint(
+                fields=["organization", "name"], name="unique_class_name_per_organization"
+            )
+        ]
 
     def __str__(self) -> str:
         return self.name

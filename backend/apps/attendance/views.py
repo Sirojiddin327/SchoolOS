@@ -13,6 +13,7 @@ from rest_framework.response import Response
 
 from apps.academics.models import Lesson
 from apps.common.permissions import IsDirector
+from apps.common.tenancy import in_organization, students_in_organization
 from apps.schools.models import SchoolClass
 from apps.schools.serializers import StudentRosterSerializer
 from apps.users.models import StudentProfile
@@ -44,8 +45,11 @@ class AttendanceViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Attendance.objects.select_related(
-            "lesson__subject", "lesson__school_class", "student__user", "marked_by"
+        queryset = in_organization(
+            user,
+            Attendance.objects.select_related(
+                "lesson__subject", "lesson__school_class", "student__user", "marked_by"
+            ),
         )
 
         if user.is_director:
@@ -115,7 +119,9 @@ class AttendanceViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
             student_ids = (
                 day_records.filter(status=status).values_list("student_id", flat=True).distinct()
             )
-            return StudentProfile.objects.filter(id__in=student_ids).select_related("user")
+            return students_in_organization(
+                request.user, StudentProfile.objects.filter(id__in=student_ids)
+            ).select_related("user")
 
         # Only staff (teacher/director) see a parent's phone number here — a
         # student viewing their own class's summary must not see classmates'.
@@ -167,7 +173,7 @@ class AttendanceViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
 
         user = request.user
         queryset = (
-            Lesson.objects.filter(date=target_date)
+            in_organization(request.user, Lesson.objects.filter(date=target_date))
             .select_related("subject", "school_class", "teacher__user")
             .annotate(
                 students_count=Count("school_class__students"),

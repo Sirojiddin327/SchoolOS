@@ -10,6 +10,7 @@ from django.urls import include, path
 
 urlpatterns = [
     path("auth/", include("apps.users.auth_urls")),
+    path("", include("apps.organizations.urls")),
     path("", include("apps.users.urls")),
     path("", include("apps.schools.urls")),
     path("", include("apps.academics.urls")),

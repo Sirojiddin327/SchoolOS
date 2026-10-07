@@ -4,16 +4,24 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.models import TimeStampedModel
+from apps.common.models import OrganizationScopedMixin, TimeStampedModel
 
 
-class Attendance(TimeStampedModel):
+class Attendance(OrganizationScopedMixin, TimeStampedModel):
+    organization_source = "lesson.organization"
+
     class Status(models.TextChoices):
         PRESENT = "PRESENT", _("Present")
         LATE = "LATE", _("Late")
         ABSENT = "ABSENT", _("Absent")
         EXCUSED = "EXCUSED", _("Excused")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="attendance_records",
+        on_delete=models.CASCADE,
+    )
     lesson = models.ForeignKey(
         "academics.Lesson",
         verbose_name=_("lesson"),
@@ -49,13 +57,21 @@ class Attendance(TimeStampedModel):
         return f"{self.student} — {self.lesson} — {self.status}"
 
 
-class AttendanceReminder(TimeStampedModel):
+class AttendanceReminder(OrganizationScopedMixin, TimeStampedModel):
     """Send-once guard for the "attendance was never taken" reminder a lesson's
     teacher gets ~10 minutes before the lesson ends. Celery Beat re-runs the
     scan every couple of minutes, so a lesson's reminder window can fall inside
     more than one run — this row is what stops the same lesson being pinged twice.
     """
 
+    organization_source = "lesson.organization"
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="attendance_reminders",
+        on_delete=models.CASCADE,
+    )
     lesson = models.OneToOneField(
         "academics.Lesson",
         verbose_name=_("lesson"),

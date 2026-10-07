@@ -3,10 +3,10 @@ from typing import ClassVar
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.models import TimeStampedModel
+from apps.common.models import OrganizationScopedMixin, TimeStampedModel
 
 
-class PooledQuestion(TimeStampedModel):
+class PooledQuestion(OrganizationScopedMixin, TimeStampedModel):
     """The universal question bank: one row per question, belonging to a
     **subject**, and served to *any* game (see `question_service.get_questions`).
 
@@ -26,6 +26,14 @@ class PooledQuestion(TimeStampedModel):
     to wait on — or burn through the rate limit of — a real-time Gemini call.
     """
 
+    organization_source = "school_class.organization"
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="pooled_questions",
+        on_delete=models.CASCADE,
+    )
     subject = models.ForeignKey(
         "academics.Subject", verbose_name=_("subject"), related_name="pooled_questions", on_delete=models.CASCADE
     )
@@ -62,12 +70,20 @@ class PooledQuestion(TimeStampedModel):
         return f"{self.subject} — {scope}: {self.text[:50]}"
 
 
-class PooledQuestionServed(models.Model):
+class PooledQuestionServed(OrganizationScopedMixin, models.Model):
     """Which pooled questions a given student has already played — consulted
     when picking a new game's questions so repeats are avoided wherever the
     pool is large enough to allow it (see `services.pick_session_questions`).
     """
 
+    organization_source = "question.organization"
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="served_pooled_questions",
+        on_delete=models.CASCADE,
+    )
     student = models.ForeignKey(
         "users.StudentProfile", verbose_name=_("student"), related_name="+", on_delete=models.CASCADE
     )
@@ -80,20 +96,25 @@ class PooledQuestionServed(models.Model):
         verbose_name = _("served pooled question")
         verbose_name_plural = _("served pooled questions")
         constraints: ClassVar[list[models.BaseConstraint]] = [
-            models.UniqueConstraint(fields=["student", "question"], name="unique_student_pooled_question"),
+            models.UniqueConstraint(
+                fields=["organization", "student", "question"],
+                name="unique_student_pooled_question_per_org",
+            ),
         ]
 
     def __str__(self) -> str:
         return f"{self.student} saw pooled question {self.question_id}"
 
 
-class GameSession(TimeStampedModel):
+class GameSession(OrganizationScopedMixin, TimeStampedModel):
     """A self-serve AI practice game — pick a subject, pick a game, play.
     Unlike `apps.remedial.RemedialSession`, this isn't triggered by a low
     test score and isn't tied to any particular `TestAttempt`; a student can
     start one any time from the "O'yinlar" section. Same question-snapshot
     approach (see that app for why).
     """
+
+    organization_source = "student.organization"
 
     class GameType(models.TextChoices):
         TUG_OF_WAR = "TUG_OF_WAR", _("Arqon tortish")
@@ -114,11 +135,17 @@ class GameSession(TimeStampedModel):
         ACTIVE = "ACTIVE", _("Active")
         COMPLETED = "COMPLETED", _("Completed")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="game_sessions",
+        on_delete=models.CASCADE,
+    )
     student = models.ForeignKey(
         "users.StudentProfile", verbose_name=_("student"), related_name="game_sessions", on_delete=models.CASCADE
     )
     subject = models.ForeignKey(
-        "academics.Subject", verbose_name=_("subject"), related_name="+", on_delete=models.CASCADE
+        "academics.Subject", verbose_name=_("subject"), related_name="+", on_delete=models.CASCADE, null=True, blank=True
     )
     game_type = models.CharField(_("game type"), max_length=20, choices=GameType.choices)
     # Only games that have levels use it (Tower Defense); blank for the rest.

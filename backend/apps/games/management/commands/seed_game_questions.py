@@ -24,6 +24,7 @@ from django.db import transaction
 
 from apps.academics.models import Subject
 from apps.games.models import PooledQuestion
+from apps.organizations.models import Organization
 from apps.schools.models import SchoolClass
 
 # Bank kalitlari fan nomining kichik harf varianti bilan taqqoslanadi.
@@ -367,11 +368,24 @@ class Command(BaseCommand):
                 "(barcha sinflar uchun), bu odatiy holat."
             ),
         )
+        parser.add_argument(
+            "--organization",
+            default="",
+            help=(
+                "Fanning umumiy banki bir maktabga tegishli, shuning uchun uning slug'i "
+                "kerak. Berilmasa — tizimda bitta maktab bo'lsa o'sha biri ishlatiladi."
+            ),
+        )
         parser.add_argument("--dry-run", action="store_true", help="Hech narsa saqlamay, faqat hisoblaydi.")
 
     def handle(self, *args, **options):
         subjects = self._resolve_subjects(options["subject"])
         classes = self._resolve_classes(options["school_class"])
+        # Only the subject-wide bank needs an owner named: a class-scoped bank
+        # inherits the tenant from the class it belongs to.
+        organization = self._resolve_organization(
+            options["organization"], needed=any(school_class is None for school_class in classes)
+        )
         if not subjects:
             raise CommandError("Hech bir fan topilmadi. --subject bilan aniqroq nom bering.")
         if options["school_class"] and not classes:
@@ -380,7 +394,9 @@ class Command(BaseCommand):
         total_created = 0
         for school_class in classes:
             for subject in subjects:
-                created = self._seed_pool(subject, school_class, dry_run=options["dry_run"])
+                created = self._seed_pool(
+                    subject, school_class, organization=organization, dry_run=options["dry_run"]
+                )
                 if created or options["dry_run"]:
                     scope = "barcha sinflar" if school_class is None else school_class.name
                     self.stdout.write(f"{subject.name} ({scope}): +{created} ta savol")
@@ -409,6 +425,31 @@ class Command(BaseCommand):
                 matches.append(subject)
         return matches
 
+    def _resolve_organization(self, reference: str, *, needed: bool) -> Organization | None:
+        """Which school owns the subject-wide bank, or None if none is needed.
+
+        A question with no class belongs to one organization rather than to all
+        of them, so the owner is named explicitly. Guessing would silently stock
+        one school's bank with another school's questions.
+        """
+        if not needed:
+            return None
+        if reference:
+            try:
+                return Organization.objects.get(slug=reference)
+            except Organization.DoesNotExist:
+                raise CommandError(f"'{reference}' slug'li tashkilot topilmadi.") from None
+
+        schools = list(Organization.objects.filter(type=Organization.Type.SCHOOL))
+        if len(schools) == 1:
+            return schools[0]
+        if not schools:
+            raise CommandError("Maktab turidagi tashkilot yo'q — avval school yaratib oling.")
+        raise CommandError(
+            "Bir nechta maktab bor, shuning uchun --organization bilan aniqlashtiring: "
+            + ", ".join(s.slug for s in schools)
+        )
+
     def _resolve_classes(self, filters: list[str]) -> list[SchoolClass | None]:
         """Sinflarni seed qilish uchun. Filtr berilmasa — bitta `None`, ya'ni
         fanning umumiy banki: bir marta yozilgan savol har bir sinfga xizmat
@@ -424,7 +465,14 @@ class Command(BaseCommand):
                 return bank
         return None
 
-    def _seed_pool(self, subject: Subject, school_class: SchoolClass | None, *, dry_run: bool) -> int:
+    def _seed_pool(
+        self,
+        subject: Subject,
+        school_class: SchoolClass | None,
+        *,
+        organization: Organization | None,
+        dry_run: bool,
+    ) -> int:
         questions = self._bank_for(subject)
         if not questions:
             return 0
@@ -443,6 +491,9 @@ class Command(BaseCommand):
                 PooledQuestion(
                     subject=subject,
                     school_class=school_class,
+                    organization=organization
+                    if school_class is None
+                    else school_class.organization,
                     text=q["text"],
                     options=q["options"],
                     correct_index=q["correct"],

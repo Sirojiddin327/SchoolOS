@@ -3,12 +3,12 @@ from typing import ClassVar
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.models import TimeStampedModel
+from apps.common.models import OrganizationScopedMixin, TimeStampedModel
 
 LOW_SCORE_THRESHOLD = 50.0
 
 
-class RemedialSession(TimeStampedModel):
+class RemedialSession(OrganizationScopedMixin, TimeStampedModel):
     """Triggered automatically when a student scores below `LOW_SCORE_THRESHOLD`
     on a `Test` or a self-serve practice game (`games.GameSession`) — exactly
     one of `attempt` / `game_session` is set — an AI-tutor explanation of the
@@ -18,11 +18,19 @@ class RemedialSession(TimeStampedModel):
     JSON snapshot rather than normalized rows in the permanent question bank.
     """
 
+    organization_source = "student.organization"
+
     class Status(models.TextChoices):
         PENDING = "PENDING", _("Pending")
         EXPLAINED = "EXPLAINED", _("Explained")
         COMPLETED = "COMPLETED", _("Completed")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="remedial_sessions",
+        on_delete=models.CASCADE,
+    )
     student = models.ForeignKey(
         "users.StudentProfile", verbose_name=_("student"), related_name="remedial_sessions",
         on_delete=models.CASCADE,

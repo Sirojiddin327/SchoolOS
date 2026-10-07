@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from apps.notifications.models import Notification
 from apps.notifications.services import notify
+from apps.organizations.models import OrganizationMembership
 from apps.users.models import User
 
 from .models import DailyScheduleDigest
@@ -25,15 +26,29 @@ def _digest_recipients(day):
     `select_related` keeps this to a couple of queries no matter how big the
     school is, and the profile filters mean `lessons_for_user` can rely on a
     profile existing.
+
+    Selection is by *membership role in the active organization*, not by
+    `User.role`: the day sent to someone must be the day they are authorized to
+    teach or sit in, which is what `lessons_for_user` then reads back.
     """
     return (
         User.objects.filter(is_active=True)
         .filter(
-            Q(role=User.Role.STUDENT, student_profile__isnull=False)
-            | Q(role=User.Role.TEACHER, teacher_profile__isnull=False)
+            Q(
+                active_organization__memberships__status=OrganizationMembership.Status.ACTIVE,
+                active_organization__memberships__role__in=OrganizationMembership.LEARNER_ROLES,
+                student_profile__isnull=False,
+            )
+            | Q(
+                active_organization__memberships__status=OrganizationMembership.Status.ACTIVE,
+                active_organization__memberships__role__in=OrganizationMembership.STAFF_ROLES,
+                teacher_profile__isnull=False,
+            )
         )
         .exclude(daily_schedule_digests__date=day)
-        .select_related("student_profile__school_class", "teacher_profile", "telegram_account")
+        .select_related(
+            "active_organization", "student_profile__school_class", "teacher_profile", "telegram_account"
+        )
     )
 
 
@@ -92,7 +107,7 @@ def send_daily_schedules() -> int:
         try:
             if _send_daily_schedule(user, day=day):
                 sent += 1
-        except Exception:  # noqa: BLE001 - one bad user must not stop the run
+        except Exception:
             logger.exception("Daily schedule failed for user_id=%s", user.pk)
 
     logger.info("Daily schedule: %s sent, %s skipped (no Telegram), for %s", sent, skipped, day)

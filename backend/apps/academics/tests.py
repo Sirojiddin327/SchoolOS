@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from apps.common.testing import (
+    default_organization,
     make_director,
     make_lesson,
     make_school_class,
@@ -73,7 +74,7 @@ class TimetableSlotConstraintTests(TestCase):
 
 class GenerateLessonsForWeekTests(TestCase):
     def setUp(self):
-        settings_obj = SchoolTimeSettings.get_solo()
+        settings_obj = SchoolTimeSettings.get_solo(default_organization())
         settings_obj.start_time = time(8, 0)
         settings_obj.period_duration_minutes = 45
         settings_obj.short_break_minutes = 5
@@ -239,7 +240,7 @@ class DailyScheduleFormattingTests(TestCase):
     def test_ordinary_between_period_gap_is_not_announced_as_a_break(self):
         # The school's own short break is the threshold, so read it rather than
         # hardcoding 5 — a gap of exactly that length is an ordinary pause.
-        short = SchoolTimeSettings.get_solo().short_break_minutes
+        short = SchoolTimeSettings.get_solo(self.student_user.active_organization).short_break_minutes
         self._lesson(self.subject_a, time(9, 0), time(9, 45))
         resumes = (datetime.combine(self.DAY, time(9, 45)) + timedelta(minutes=short)).time()
         self._lesson(self.subject_b, resumes, time(10, 45))

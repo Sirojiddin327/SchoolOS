@@ -5,14 +5,16 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.models import TimeStampedModel
+from apps.common.models import OrganizationScopedMixin, TimeStampedModel
 
 
-class XPTransaction(TimeStampedModel):
+class XPTransaction(OrganizationScopedMixin, TimeStampedModel):
     """An immutable ledger entry. `StudentProfile.total_xp` is a running sum of
     these — never edit it directly anywhere except `services.award_xp`, which
     is what keeps every XP change auditable back to its source.
     """
+
+    organization_source = "student.organization"
 
     class Source(models.TextChoices):
         TEST = "TEST", _("Test")
@@ -22,6 +24,12 @@ class XPTransaction(TimeStampedModel):
         GAME = "GAME", _("Practice game")
         ACHIEVEMENT = "ACHIEVEMENT", _("Achievement unlocked")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="xp_transactions",
+        on_delete=models.CASCADE,
+    )
     student = models.ForeignKey(
         "users.StudentProfile",
         verbose_name=_("student"),
@@ -90,7 +98,15 @@ class Achievement(TimeStampedModel):
         return self.name
 
 
-class StudentAchievement(TimeStampedModel):
+class StudentAchievement(OrganizationScopedMixin, TimeStampedModel):
+    organization_source = "student.organization"
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="student_achievements",
+        on_delete=models.CASCADE,
+    )
     student = models.ForeignKey(
         "users.StudentProfile",
         verbose_name=_("student"),
@@ -111,19 +127,35 @@ class StudentAchievement(TimeStampedModel):
         ordering = ("-unlocked_at",)
         constraints: ClassVar[list[models.BaseConstraint]] = [
             models.UniqueConstraint(
-                fields=["student", "achievement"], name="unique_student_achievement"
+                fields=["organization", "student", "achievement"],
+                name="unique_student_achievement_per_org",
             ),
         ]
 
     def __str__(self) -> str:
-        return f"{self.student} unlocked {self.achievement}"
+        return f"{self.student} unlocked {self.achievement} at {self.organization}"
 
 
-class Streak(TimeStampedModel):
-    student = models.OneToOneField(
+class Streak(OrganizationScopedMixin, TimeStampedModel):
+    """Consecutive days of activity *in one organization*.
+
+    Was a OneToOne on student — one streak for the whole account. With several
+    organizations on one account that would make a club's activity days extend
+    the school's streak, so this is now unique per (organization, student).
+    """
+
+    organization_source = "student.organization"
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="streaks",
+        on_delete=models.CASCADE,
+    )
+    student = models.ForeignKey(
         "users.StudentProfile",
         verbose_name=_("student"),
-        related_name="streak",
+        related_name="streaks",
         on_delete=models.CASCADE,
     )
     current_streak = models.PositiveIntegerField(_("current streak"), default=0)
@@ -133,6 +165,11 @@ class Streak(TimeStampedModel):
     class Meta:
         verbose_name = _("streak")
         verbose_name_plural = _("streaks")
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "student"], name="unique_streak_per_student_org"
+            ),
+        ]
 
     def __str__(self) -> str:
-        return f"{self.student}: {self.current_streak} day streak"
+        return f"{self.student} @ {self.organization}: {self.current_streak} day streak"

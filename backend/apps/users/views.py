@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.permissions import IsDirector, IsDirectorOrReadOnly, IsStudent
+from apps.common.tenancy import students_in_organization
 
 from . import services
 from .models import StudentProfile, TeacherProfile
@@ -70,9 +71,9 @@ class StudentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = StudentProfile.objects.select_related("user", "school_class").order_by(
-            "user__first_name"
-        )
+        queryset = students_in_organization(
+            user, StudentProfile.objects.select_related("user", "school_class")
+        ).order_by("user__first_name")
 
         if user.is_director:
             return queryset

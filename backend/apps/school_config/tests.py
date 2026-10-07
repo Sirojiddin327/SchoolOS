@@ -5,7 +5,13 @@ from django.http import HttpResponse
 from django.test import RequestFactory, TestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.common.testing import make_director, make_student, make_teacher
+from apps.common.testing import (
+    default_organization,
+    make_director,
+    make_organization,
+    make_student,
+    make_teacher,
+)
 
 from .middleware import SchoolTimeLockMiddleware
 from .models import SchoolTimeSettings
@@ -13,7 +19,8 @@ from .models import SchoolTimeSettings
 
 class PeriodTimesTests(TestCase):
     def setUp(self):
-        self.settings_obj = SchoolTimeSettings.get_solo()
+        self.organization = default_organization()
+        self.settings_obj = SchoolTimeSettings.get_solo(self.organization)
         self.settings_obj.start_time = time(8, 0)
         self.settings_obj.period_duration_minutes = 45
         self.settings_obj.short_break_minutes = 5
@@ -33,18 +40,26 @@ class PeriodTimesTests(TestCase):
         start, _end = self.settings_obj.period_times(3)
         self.assertEqual(start, time(9, 55))
 
-    def test_singleton_always_returns_the_same_row(self):
-        first = SchoolTimeSettings.get_solo()
-        second = SchoolTimeSettings.get_solo()
+    def test_get_solo_always_returns_the_same_row_for_one_organization(self):
+        first = SchoolTimeSettings.get_solo(self.organization)
+        second = SchoolTimeSettings.get_solo(self.organization)
         self.assertEqual(first.pk, second.pk)
         self.assertEqual(SchoolTimeSettings.objects.count(), 1)
+
+    def test_each_organization_gets_its_own_bell_times(self):
+        # The old pk=1 singleton collapsed every organization onto one
+        # another's timings, so "the" settings row no longer exists.
+        other = make_organization()
+        mine = SchoolTimeSettings.get_solo(self.organization)
+        theirs = SchoolTimeSettings.get_solo(other)
+        self.assertNotEqual(mine.pk, theirs.pk)
 
 
 class SchoolTimeLockMiddlewareTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.middleware = SchoolTimeLockMiddleware(lambda request: HttpResponse("OK"))
-        settings_obj = SchoolTimeSettings.get_solo()
+        settings_obj = SchoolTimeSettings.get_solo(default_organization())
         settings_obj.start_time = time(8, 0)
         settings_obj.end_time = time(13, 10)
         settings_obj.save()

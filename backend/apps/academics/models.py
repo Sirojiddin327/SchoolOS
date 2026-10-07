@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.models import TimeStampedModel
+from apps.common.models import OrganizationScopedMixin, TimeStampedModel
 
 
 class Subject(TimeStampedModel):
@@ -20,7 +20,15 @@ class Subject(TimeStampedModel):
         return self.name
 
 
-class Lesson(TimeStampedModel):
+class Lesson(OrganizationScopedMixin, TimeStampedModel):
+    organization_source = "school_class.organization"
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="lessons",
+        on_delete=models.CASCADE,
+    )
     subject = models.ForeignKey(
         Subject,
         verbose_name=_("subject"),
@@ -68,12 +76,14 @@ class Lesson(TimeStampedModel):
             raise ValidationError({"end_time": _("End time must be after start time.")})
 
 
-class TimetableSlot(TimeStampedModel):
+class TimetableSlot(OrganizationScopedMixin, TimeStampedModel):
     """A recurring weekly schedule entry — 'every Monday, period 2, this class has Math'.
 
     Concrete dated `Lesson` rows are generated from these (see services.generate_lessons_for_week),
     so attendance keeps working against real Lesson instances, not the template.
     """
+
+    organization_source = "school_class.organization"
 
     class DayOfWeek(models.IntegerChoices):
         MONDAY = 1, _("Monday")
@@ -83,6 +93,12 @@ class TimetableSlot(TimeStampedModel):
         FRIDAY = 5, _("Friday")
         SATURDAY = 6, _("Saturday")
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
+        related_name="timetable_slots",
+        on_delete=models.CASCADE,
+    )
     school_class = models.ForeignKey(
         "schools.SchoolClass",
         verbose_name=_("class"),
@@ -137,7 +153,7 @@ class TimetableSlot(TimeStampedModel):
         return str(self.teacher)
 
 
-class DailyScheduleDigest(TimeStampedModel):
+class DailyScheduleDigest(OrganizationScopedMixin, TimeStampedModel):
     """Marks that `user` has already been sent their whole day of lessons.
 
     The send-once guard for `tasks.send_daily_schedules`, which runs once a day
@@ -148,9 +164,17 @@ class DailyScheduleDigest(TimeStampedModel):
     not any single lesson.
     """
 
+    organization_source = "user.active_organization"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name=_("user"),
+        related_name="daily_schedule_digests",
+        on_delete=models.CASCADE,
+    )
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        verbose_name=_("organization"),
         related_name="daily_schedule_digests",
         on_delete=models.CASCADE,
     )
@@ -162,8 +186,11 @@ class DailyScheduleDigest(TimeStampedModel):
         verbose_name_plural = _("daily schedule digests")
         ordering = ("-date",)
         constraints: ClassVar[list[models.BaseConstraint]] = [
-            models.UniqueConstraint(fields=["user", "date"], name="unique_daily_schedule_per_user")
+            models.UniqueConstraint(
+                fields=["user", "organization", "date"],
+                name="unique_daily_schedule_per_user_org",
+            )
         ]
 
     def __str__(self) -> str:
-        return f"Daily schedule sent to {self.user} for {self.date}"
+        return f"Daily schedule sent to {self.user} at {self.organization} for {self.date}"

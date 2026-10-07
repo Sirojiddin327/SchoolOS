@@ -7,6 +7,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.common.permissions import IsDirector
+from apps.common.tenancy import in_organization
 
 from .models import TeacherTask, TeacherTaskAssignment
 from .serializers import (
@@ -28,8 +29,11 @@ class TeacherTaskViewSet(
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsDirector]
 
     def get_queryset(self):
+        # `created_by` is not tenant-scoped: a director who also runs a club
+        # would otherwise see the school's task list while signed in as the
+        # club's owner.
         return (
-            TeacherTask.objects.filter(created_by=self.request.user)
+            in_organization(self.request.user, TeacherTask.objects.filter(created_by=self.request.user))
             .prefetch_related("assignments")
         )
 
@@ -49,7 +53,9 @@ class TeacherTaskAssignmentViewSet(mixins.ListModelMixin, viewsets.GenericViewSe
         profile = getattr(self.request.user, "teacher_profile", None)
         if not profile:
             return TeacherTaskAssignment.objects.none()
-        return TeacherTaskAssignment.objects.filter(teacher=profile).select_related("task", "task__created_by")
+        return in_organization(
+            self.request.user, TeacherTaskAssignment.objects.filter(teacher=profile)
+        ).select_related("task", "task__created_by")
 
     @action(detail=True, methods=["patch"], url_path="mark-done")
     def mark_done(self, request, pk=None):
