@@ -19,10 +19,15 @@ from apps.common.testing import (
 from apps.gamification.models import Achievement, StudentAchievement, XPTransaction
 from apps.gamification.services import award_xp, check_achievements
 from apps.learning.models import Test
+from apps.users.models import User
 
 from .management.commands.runbot import (
+    STUDENT_MENU,
+    TEACHER_MENU,
     available_tests_text,
     class_xp_text,
+    get_linked_user,
+    menu_for,
     my_achievements_text,
     my_xp_text,
     parent_attendance_text,
@@ -349,3 +354,46 @@ class ParentBotTextTests(TestCase):
         text = async_to_sync(parent_progress_text)([self.student])
 
         self.assertIn("25", text)
+
+
+class AsyncRoleCacheTests(TestCase):
+    """Roles resolve through a synchronous ORM query; async handlers must not run it.
+
+    Regression for the SynchronousOnlyOperation that broke `handle_menu` after
+    the tenancy refactor: `menu_for`/`today_lessons_text` read
+    `user.is_student`/`is_director`, which read `User.active_membership`.
+    Loading the user through `get_linked_user` primes the per-instance cache
+    from a worker thread, so every later role read inside the event loop is
+    served from memory.
+    """
+
+    def test_get_linked_user_primes_the_role_cache_before_any_role_read(self):
+        student, _ = make_student()
+        TelegramAccount.objects.create(user=student, telegram_id=1001)
+
+        async def scenario():
+            user = await get_linked_user(1001)
+            # Reads the role inside the event loop: without a primed cache
+            # this raises SynchronousOnlyOperation instead of returning.
+            return menu_for(user)
+
+        self.assertEqual(async_to_sync(scenario)(), STUDENT_MENU)
+
+    def test_a_user_with_no_membership_is_cached_too(self):
+        user = User.objects.create(username="loner", email="loner@example.com")
+        TelegramAccount.objects.create(user=user, telegram_id=1002)
+
+        async def scenario():
+            user = await get_linked_user(1002)
+            return menu_for(user)
+
+        self.assertEqual(async_to_sync(scenario)(), STUDENT_MENU)
+
+    def test_a_teacher_gets_the_teacher_menu(self):
+        teacher, _ = make_teacher()
+        TelegramAccount.objects.create(user=teacher, telegram_id=1003)
+
+        async def scenario():
+            return menu_for(await get_linked_user(1003))
+
+        self.assertEqual(async_to_sync(scenario)(), TEACHER_MENU)

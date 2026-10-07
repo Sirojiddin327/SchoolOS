@@ -9,6 +9,10 @@ from django.utils.translation import gettext_lazy as _
 # `settings.AUTH_USER_MODEL` string and never imports apps.users.
 from apps.organizations.models import OrganizationMembership
 
+# Marks "User.active_membership has not been read yet": `None` is a legitimate
+# answer for an account with no active membership, so it needs its own marker.
+_MEMBERSHIP_UNSET = object()
+
 
 class UserManager(DjangoUserManager):
     """`createsuperuser` always creates a director account."""
@@ -99,8 +103,16 @@ class User(AbstractUser):
 
     @property
     def active_membership(self):
-        cached = getattr(self, "_active_membership_cache", None)
-        if cached is not None:
+        """The active membership, read from the database at most once per instance.
+
+        `None` is a real answer (an account with no active membership) and must
+        be cached like any other, so the marker is a sentinel rather than a
+        `None` check. Async callers — the Telegram bot — prime this cache from
+        a worker thread right after loading the user, because the query itself
+        is synchronous and Django refuses to run it inside an event loop.
+        """
+        cached = getattr(self, "_active_membership_cache", _MEMBERSHIP_UNSET)
+        if cached is not _MEMBERSHIP_UNSET:
             return cached
         membership = self.get_active_membership()
         self._active_membership_cache = membership

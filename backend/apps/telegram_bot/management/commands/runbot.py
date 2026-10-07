@@ -29,6 +29,12 @@ User = get_user_model()
 # must go through sync_to_async instead of being awaited/called directly.
 acount_by_status = sync_to_async(count_by_status, thread_sensitive=True)
 
+# `user.is_student`/`is_director` resolve to User.active_membership, another
+# synchronous ORM query. Loading a user here and reading its role there would
+# raise SynchronousOnlyOperation inside the async handler, so the membership
+# is fetched once, from a worker thread, before any handler touches a role.
+prime_role_cache = sync_to_async(lambda user: user.active_membership, thread_sensitive=True)
+
 LESSONS_BUTTON = "📅 Bugungi darslar"
 ATTENDANCE_BUTTON = "📊 Davomatim"
 CLASSES_BUTTON = "🏫 Mening sinflarim"
@@ -71,7 +77,10 @@ async def get_linked_user(telegram_id: int):
         .filter(telegram_id=telegram_id)
         .afirst()
     )
-    return account.user if account else None
+    if account is None:
+        return None
+    await prime_role_cache(account.user)
+    return account.user
 
 
 async def get_linked_parent_students(telegram_id: int) -> list:
@@ -300,6 +309,7 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await link_code.asave(update_fields=["used_at"])
 
             name = link_code.user.get_full_name() or link_code.user.username
+            await prime_role_cache(link_code.user)
             await update.message.reply_text(
                 f"✅ Hisobingiz bog'landi: {name}", reply_markup=menu_for(link_code.user)
             )
