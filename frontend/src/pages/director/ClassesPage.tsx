@@ -11,6 +11,7 @@ import type { Paginated, RosterStudent, SchoolClass, Teacher } from "../../types
 export function ClassesPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setModalOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState<SchoolClass | null>(null);
   const [name, setName] = useState("");
   const [classTeacherId, setClassTeacherId] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -51,11 +52,46 @@ export function ClassesPage() {
     onError: () => setError("Saqlashda xatolik. Sinf nomi band bo'lishi mumkin."),
   });
 
+  const updateClass = useMutation({
+    mutationFn: async (cls: SchoolClass) =>
+      (
+        await api.patch(`/classes/${cls.id}/`, {
+          name,
+          class_teacher: classTeacherId ? Number(classTeacherId) : null,
+        })
+      ).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      setModalOpen(false);
+      setEditingClass(null);
+      setName("");
+      setClassTeacherId("");
+      setError(null);
+    },
+    onError: () => setError("Yangilashda xatolik."),
+  });
+
+  const openCreateModal = () => {
+    setEditingClass(null);
+    setName("");
+    setClassTeacherId("");
+    setError(null);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (cls: SchoolClass) => {
+    setEditingClass(cls);
+    setName(cls.name);
+    setClassTeacherId(cls.class_teacher ? String(cls.class_teacher) : "");
+    setError(null);
+    setModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Sinflar"
-        action={<PrimaryButton onClick={() => setModalOpen(true)}>+ Sinf qo'shish</PrimaryButton>}
+        action={<PrimaryButton onClick={openCreateModal}>+ Sinf qo'shish</PrimaryButton>}
       />
 
       {isLoading && <LoadingState />}
@@ -79,7 +115,18 @@ export function ClassesPage() {
                     {cls.students_count} o'quvchi
                   </p>
                 </div>
-                <span className="text-slate-400 dark:text-slate-500">{expandedId === cls.id ? "▲" : "▼"}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 dark:text-slate-500">{expandedId === cls.id ? "▲" : "▼"}</span>
+                  <SecondaryButton
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(cls);
+                    }}
+                  >
+                    Tahrirlash
+                  </SecondaryButton>
+                </div>
               </button>
               {expandedId === cls.id && (
                 <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
@@ -104,11 +151,15 @@ export function ClassesPage() {
       )}
 
       {isModalOpen && (
-        <Modal title="Sinf qo'shish" onClose={() => setModalOpen(false)}>
+        <Modal title={editingClass ? "Sinfni tahrirlash" : "Sinf qo'shish"} onClose={() => setModalOpen(false)}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              createClass.mutate();
+              if (editingClass) {
+                updateClass.mutate(editingClass);
+              } else {
+                createClass.mutate();
+              }
             }}
             className="space-y-4"
           >
@@ -133,8 +184,8 @@ export function ClassesPage() {
               <SecondaryButton type="button" onClick={() => setModalOpen(false)}>
                 Bekor qilish
               </SecondaryButton>
-              <PrimaryButton type="submit" disabled={createClass.isPending}>
-                {createClass.isPending ? "Saqlanmoqda..." : "Saqlash"}
+              <PrimaryButton type="submit" disabled={createClass.isPending || updateClass.isPending}>
+                {(createClass.isPending || updateClass.isPending) ? "Saqlanmoqda..." : "Saqlash"}
               </PrimaryButton>
             </div>
           </form>

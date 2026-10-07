@@ -312,6 +312,35 @@
 }
 
 @layer utilities {
+  /* Scrollbar suppression utility */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Thin, elegant dark/light scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--c-line-strong) / 0.5) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: rgb(var(--c-line-strong) / 0.5);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--c-line-strong) / 0.8);
+  }
+
   /* Staggered entrance for lists/grids — set `style={{ "--i": n }}` per child. */
   .rise {
     animation: rise 360ms cubic-bezier(0.22, 1, 0.36, 1) both;

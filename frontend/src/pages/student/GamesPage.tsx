@@ -11,6 +11,7 @@ import {
   Map,
   Shield,
   Swords,
+  Shuffle,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +22,8 @@ import { EmptyState, ErrorState, LoadingState } from "../../components/states";
 import { NO_QUESTIONS_HINT, NO_QUESTIONS_TITLE } from "../../lib/gameErrors";
 import { api } from "../../lib/api";
 import type { GameDifficulty, GameSession, GameType, Paginated, Subject, SubjectCoverage } from "../../types";
+
+const ALL_SUBJECTS_OPTION = { id: 0, name: "Hamma fanlar" };
 
 const GAME_OPTIONS: { type: GameType; label: string; description: string; icon: typeof Swords }[] = [
   {
@@ -123,11 +126,14 @@ export function StudentGamesPage() {
   /** The picked subject has nothing in the question bank — show the empty state
    * up front instead of letting the student start a game that can't fill. */
   const selectedSubjectIsEmpty =
-    coverage !== undefined && coverage.some((row) => row.id === selectedSubject && row.question_count === 0);
+    selectedSubject !== null &&
+    selectedSubject !== 0 &&
+    coverage !== undefined &&
+    coverage.some((row) => row.id === selectedSubject && row.question_count === 0);
 
   const startGame = useMutation({
     mutationFn: async ({ game_type, difficulty }: { game_type: GameType; difficulty?: GameDifficulty }) =>
-      (await api.post<GameSession>("/games/", { subject: selectedSubject, game_type, difficulty })).data,
+      (await api.post<GameSession>("/games/", { subject: selectedSubject === 0 ? null : selectedSubject, game_type, difficulty })).data,
     onSuccess: (session) => navigate(`/student/games/${session.id}`),
   });
 
@@ -142,6 +148,26 @@ export function StudentGamesPage() {
         {subjects && subjects.results.length === 0 && <EmptyState title="Hali fan qo'shilmagan" />}
         {subjects && subjects.results.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            <button
+              key="all"
+              onClick={() => setSelectedSubject(0)}
+              className={`flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition-colors ${
+                selectedSubject === 0
+                  ? "border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-500/10"
+                  : "hover-card border-line bg-surface"
+              }`}
+            >
+              <span
+                className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                  selectedSubject === 0
+                    ? "bg-brand-600 text-white"
+                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                }`}
+              >
+                <Shuffle size={18} />
+              </span>
+              <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{ALL_SUBJECTS_OPTION.name}</span>
+            </button>
             {subjects.results.map((subject) => (
               <button
                 key={subject.id}
@@ -181,7 +207,7 @@ export function StudentGamesPage() {
         />
       )}
 
-      {selectedSubject && !selectedSubjectIsEmpty && (
+      {selectedSubject !== null && !selectedSubjectIsEmpty && (
         <div>
           <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">2. O'yinni tanlang</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

@@ -3,7 +3,7 @@ import { Crown, Medal, Trophy, Users } from "lucide-react";
 import { useState } from "react";
 
 import { api } from "../lib/api";
-import { TONE_DOT, TONE_FILL, type Tone } from "../lib/tones";
+import { TONE_DOT, type Tone } from "../lib/tones";
 import type { ClassLeaderboardEntry, StudentLeaderboardEntry } from "../types";
 import { Avatar } from "./Avatar";
 import { SegmentedControl } from "./form";
@@ -157,33 +157,91 @@ export function Leaderboard() {
 export function LeaderboardPodium({ entries }: { entries: StudentLeaderboardEntry[] }) {
   const top = entries.slice(0, 3);
   if (top.length === 0) return null;
+
+  // Podium order: 2nd (left), 1st (center), 3rd (right)
   const order = [top[1], top[0], top[2]].filter(Boolean) as StudentLeaderboardEntry[];
-  const height: Record<number, string> = { 1: "h-16", 2: "h-11", 3: "h-9" };
-  const tone: Record<number, Tone> = { 1: "amber", 2: "slate", 3: "violet" };
+
+  const podiumConfig: Record<
+    number,
+    {
+      height: string;
+      avatarSize: number;
+      avatarRing: string;
+      badgeClass: string;
+      bgGradient: string;
+      badgeIcon: React.ReactNode;
+    }
+  > = {
+    1: {
+      height: "h-20 sm:h-24",
+      avatarSize: 44,
+      avatarRing: "ring-2 ring-amber-400 ring-offset-2 ring-offset-surface",
+      badgeClass: "bg-amber-500 text-white",
+      bgGradient: "bg-gradient-to-t from-amber-600 to-amber-500 shadow-sm",
+      badgeIcon: <Crown size={12} className="text-white" />,
+    },
+    2: {
+      height: "h-14 sm:h-16",
+      avatarSize: 36,
+      avatarRing: "ring-2 ring-slate-300 dark:ring-slate-600 ring-offset-1 ring-offset-surface",
+      badgeClass: "bg-slate-500 text-white",
+      bgGradient: "bg-gradient-to-t from-slate-600 to-slate-500",
+      badgeIcon: <Medal size={11} className="text-white" />,
+    },
+    3: {
+      height: "h-10 sm:h-12",
+      avatarSize: 34,
+      avatarRing: "ring-2 ring-violet-400/80 ring-offset-1 ring-offset-surface",
+      badgeClass: "bg-violet-600 text-white",
+      bgGradient: "bg-gradient-to-t from-violet-700 to-violet-600",
+      badgeIcon: <Medal size={10} className="text-white" />,
+    },
+  };
 
   return (
-    <div className="flex items-end justify-center gap-2 sm:gap-3">
-      {order.map((entry) => (
-        // `min-w-0` is what makes the name truncate. Without it this flex item
-        // keeps `min-width: auto`, and since the name is `whitespace-nowrap` its
-        // min-content width is the whole name — so a long one refuses to shrink,
-        // the three columns stop fitting their thirds, and the names spill out of
-        // the card and over each other. Every other `truncate` in the app sits
-        // under a `min-w-0` for this reason; the podium was the one that didn't.
-        <div key={entry.rank} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-          <Avatar name={entry.name} src={entry.avatar_url} size={entry.rank === 1 ? 44 : 34} />
-          <p className="w-full truncate text-center text-xs font-medium text-ink">
-            {entry.name}
-          </p>
-          <div
-            className={`flex w-full items-start justify-center rounded-t-xl pt-1.5 text-[11px] font-bold text-white ${
-              height[entry.rank]
-            } ${TONE_FILL[tone[entry.rank]]}`}
-          >
-            {entry.rank}
-          </div>
-        </div>
-      ))}
+    <div className="w-full overflow-x-auto no-scrollbar pt-3 pb-1">
+      <div className="flex items-end justify-center gap-2 sm:gap-3 min-w-[220px]">
+        {order.map((entry) => {
+          const config = podiumConfig[entry.rank] ?? podiumConfig[3];
+          return (
+            <div
+              key={entry.rank}
+              className="flex min-w-0 flex-1 flex-col items-center max-w-[120px]"
+            >
+              {/* Avatar + Rank Badge */}
+              <div className="relative mb-1">
+                <div className={`rounded-full ${config.avatarRing}`}>
+                  <Avatar name={entry.name} src={entry.avatar_url} size={config.avatarSize} />
+                </div>
+                <span
+                  className={`absolute -top-1.5 left-1/2 -translate-x-1/2 rounded-full p-0.5 shadow-sm flex items-center justify-center ${config.badgeClass}`}
+                >
+                  {config.badgeIcon}
+                </span>
+              </div>
+
+              {/* Student Name */}
+              <p className="w-full truncate text-center text-xs font-medium text-ink px-0.5">
+                {entry.name}
+              </p>
+
+              {/* Total XP */}
+              <span className="tabular text-[10px] sm:text-[11px] font-semibold text-ink-subtle mb-1">
+                {entry.total_xp.toLocaleString()} XP
+              </span>
+
+              {/* Podium Step */}
+              <div
+                className={`flex w-full items-center justify-center rounded-t-xl font-bold text-white transition-all duration-200 ${config.height} ${config.bgGradient}`}
+              >
+                <span className={entry.rank === 1 ? "text-base font-extrabold drop-shadow-sm" : "text-xs font-bold opacity-95"}>
+                  #{entry.rank}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
