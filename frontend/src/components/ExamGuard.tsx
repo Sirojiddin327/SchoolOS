@@ -6,8 +6,8 @@ import { useAuth } from "../lib/auth";
 type GuardState = "ok" | "away" | "devtools";
 
 /**
- * Anti-screenshot / anti-copy guard for exam-style screens (tests, duels,
- * games). A browser can't stop a real OS screenshot, but this makes taken
+ * Anti-screenshot / anti-copy guard for exam-style screens (tests). A browser
+ * can't stop a real OS screenshot, but this makes taken
  * screenshots useless: content is covered while the page loses focus or
  * DevTools are open, printing / selection / copy / context menus are blocked,
  * and every visible frame is stamped with the student's watermark so any
