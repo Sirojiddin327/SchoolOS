@@ -89,7 +89,7 @@ class TestViewSet(viewsets.ModelViewSet):
         unpublished; reviewed/edited before publishing, same as a
         manually-built test.
         """
-        serializer = TestGenerateSerializer(data=request.data)
+        serializer = TestGenerateSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 

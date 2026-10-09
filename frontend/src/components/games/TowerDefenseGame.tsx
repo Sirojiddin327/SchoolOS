@@ -234,8 +234,11 @@ export function TowerDefenseGame({ session }: { session: GameSession }) {
   // "Play again" lands here with autoStart — skip the briefing once questions are in.
   useEffect(() => {
     if (game.autoStart && game.phase === "start" && game.questionsQuery.isSuccess) {
-      game.start();
-      showWaveBanner(field?.wave ?? 1, Boolean(field?.boss_wave));
+      const t = window.setTimeout(() => {
+        game.start();
+        showWaveBanner(field?.wave ?? 1, Boolean(field?.boss_wave));
+      }, 0);
+      return () => window.clearTimeout(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when questions are ready
   }, [game.autoStart, game.questionsQuery.isSuccess]);
@@ -302,7 +305,7 @@ export function TowerDefenseGame({ session }: { session: GameSession }) {
         steps={steps}
         charging={charging}
         baseHitKey={baseHitKey}
-        zoom={Boolean(boss && boss.hp > 0) ? 1.04 : 1}
+        zoom={boss && boss.hp > 0 ? 1.04 : 1}
       >
         {boss && <BossBar boss={boss} />}
         {shot && <ShotEffects key={shot.key} shot={shot} />}
@@ -525,9 +528,12 @@ function Battlefield({
   const [shaking, setShaking] = useState(false);
   useEffect(() => {
     if (baseHitKey === 0) return;
-    setShaking(true);
-    const t = window.setTimeout(() => setShaking(false), 480);
-    return () => window.clearTimeout(t);
+    const start = window.setTimeout(() => setShaking(true), 0);
+    const stop = window.setTimeout(() => setShaking(false), 480);
+    return () => {
+      window.clearTimeout(start);
+      window.clearTimeout(stop);
+    };
   }, [baseHitKey]);
 
   return (

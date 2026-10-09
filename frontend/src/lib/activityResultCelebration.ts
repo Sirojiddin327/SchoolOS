@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import type { ActivitySubmission } from "../types";
 import { activityResultCelebrations } from "./celebrationTracking";
@@ -13,18 +13,15 @@ import { activityResultCelebrations } from "./celebrationTracking";
 export function useNewlyGradedSubmissions(
   submissions: ActivitySubmission[] | undefined,
 ): ActivitySubmission[] {
-  const [celebrated, setCelebrated] = useState<ActivitySubmission[]>([]);
-
-  useEffect(() => {
-    if (!submissions) return;
+  const fresh = useMemo(() => {
+    if (!submissions) return [];
     const seen = activityResultCelebrations.getSeen();
-    const fresh = submissions.filter((s) => s.result && !seen.has(s.id));
-    if (fresh.length > 0) {
-      setCelebrated(fresh);
-      activityResultCelebrations.markSeen(fresh.map((s) => s.id));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return submissions.filter((s) => s.result && !seen.has(s.id));
   }, [submissions]);
 
-  return celebrated;
+  useEffect(() => {
+    if (fresh.length > 0) activityResultCelebrations.markSeen(fresh.map((s) => s.id));
+  }, [fresh]);
+
+  return fresh;
 }

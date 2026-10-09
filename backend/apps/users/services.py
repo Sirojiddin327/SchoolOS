@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
+from apps.organizations.models import OrganizationMembership
+from apps.organizations.services import add_member
 from apps.schools.models import SchoolClass
 
 from .models import StudentProfile
@@ -93,9 +95,20 @@ def _parse_rows(file) -> list[dict]:
 
 
 @transaction.atomic
-def bulk_import_students(file) -> BulkImportResult:
+def bulk_import_students(file, organization=None) -> BulkImportResult:
+    """Create one account per spreadsheet row.
+
+    `organization` is the tenant the director is signed in to. Classes are
+    resolved *inside* it: matching by name across every school would let an
+    import drop students into another school's roster just because the class
+    names happened to collide.
+    """
     result = BulkImportResult()
     rows = _parse_rows(file)
+
+    classes = SchoolClass.objects.all()
+    if organization is not None:
+        classes = classes.filter(organization=organization)
 
     for index, row in enumerate(rows, start=2):  # row 1 is the header
         full_name = row.get("full_name", "")
@@ -108,7 +121,7 @@ def bulk_import_students(file) -> BulkImportResult:
             result.errors.append({"row": index, "message": "class is required."})
             continue
 
-        school_class = SchoolClass.objects.filter(name__iexact=class_name).first()
+        school_class = classes.filter(name__iexact=class_name).first()
         if school_class is None:
             result.errors.append({"row": index, "message": f"Class '{class_name}' does not exist."})
             continue
@@ -130,6 +143,14 @@ def bulk_import_students(file) -> BulkImportResult:
         )
         StudentProfile.objects.create(
             user=user, school_class=school_class, phone_number=row.get("phone", "")
+        )
+        # Without a membership the account cannot log in at all, so the class's
+        # organization (or the director's, when the class has none) is the one
+        # this student is enrolled in.
+        add_member(
+            user=user,
+            organization=organization or school_class.organization,
+            role=OrganizationMembership.Role.STUDENT,
         )
 
         result.created.append(

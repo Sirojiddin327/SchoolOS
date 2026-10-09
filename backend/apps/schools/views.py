@@ -31,7 +31,9 @@ class SchoolClassViewSet(viewsets.ModelViewSet):
             return queryset
         if user.is_teacher:
             return queryset.filter(
-                Q(class_teacher=user.teacher_profile) | Q(lessons__teacher=user.teacher_profile)
+                Q(class_teacher=user.teacher_profile)
+                | Q(lessons__teacher=user.teacher_profile)
+                | Q(lessons__secondary_teacher=user.teacher_profile)
             ).distinct()
         if user.is_student:
             student_profile = getattr(user, "student_profile", None)

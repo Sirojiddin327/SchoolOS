@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.academics.models import Subject, TimetableSlot
+from apps.common.tenancy import request_active_organization
 from apps.schools.models import SchoolClass
 from apps.users.models import TeacherProfile
 
@@ -15,6 +16,25 @@ from .models import (
     Test,
     TestAttempt,
 )
+
+
+def _validate_own_class(value, serializer):
+    """A `school_class` in a write payload must belong to the caller's active
+    organization — it is a writable FK with a global queryset everywhere."""
+    organization = request_active_organization(serializer.context.get("request"))
+    if organization is None or value.organization_id != organization.pk:
+        raise serializers.ValidationError("Bu sinf boshqa tashkilotga tegishli.")
+    return value
+
+
+def _validate_own_teacher(value, serializer):
+    """The chosen teacher must hold a membership in the active organization."""
+    organization = request_active_organization(serializer.context.get("request"))
+    if organization is None or not value.user.organization_memberships.filter(
+        organization=organization
+    ).exists():
+        raise serializers.ValidationError("Bu o'qituvchi boshqa tashkilotga tegishli.")
+    return value
 
 
 class OptionSerializer(serializers.ModelSerializer):
@@ -35,6 +55,11 @@ class OptionWriteSerializer(serializers.ModelSerializer):
     def validate_question(self, value):
         user = self.context["request"].user
         if user.is_director:
+            # A director may write options on their own tenant's tests only —
+            # `value.test` belongs to an organization, not to the director.
+            organization = request_active_organization(self.context.get("request"))
+            if organization is None or value.test.organization_id != organization.pk:
+                raise serializers.ValidationError("Bu savol boshqa tashkilotga tegishli.")
             return value
         profile = getattr(user, "teacher_profile", None)
         if not profile or value.test.teacher_id != profile.pk:
@@ -63,6 +88,11 @@ class QuestionWriteSerializer(serializers.ModelSerializer):
             profile = getattr(user, "teacher_profile", None)
             if not profile or value.teacher_id != profile.pk:
                 raise serializers.ValidationError("You do not own this test.")
+        else:
+            # A director drafts questions on their own tenant's tests only.
+            organization = request_active_organization(self.context.get("request"))
+            if organization is None or value.organization_id != organization.pk:
+                raise serializers.ValidationError("Bu test boshqa tashkilotga tegishli.")
 
         # Only a new question can trip the cap — editing an existing one doesn't add to the count.
         if self.instance is None:
@@ -145,6 +175,9 @@ class TestWriteSerializer(serializers.ModelSerializer):
             "max_xp",
         )
 
+    def validate_school_class(self, value):
+        return _validate_own_class(value, self)
+
 
 class TestGenerateSerializer(serializers.Serializer):
     """Input for `TestViewSet.generate` — an AI-drafted test from a topic.
@@ -163,6 +196,12 @@ class TestGenerateSerializer(serializers.Serializer):
     question_count = serializers.IntegerField(min_value=3, max_value=20, default=10)
     max_xp = serializers.IntegerField(min_value=1, default=100)
     time_limit_minutes = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+
+    def validate_school_class(self, value):
+        return _validate_own_class(value, self)
+
+    def validate_teacher(self, value):
+        return _validate_own_teacher(value, self)
 
 
 class TestAttemptResultSerializer(serializers.ModelSerializer):
@@ -255,6 +294,9 @@ class ActivityWriteSerializer(serializers.ModelSerializer):
             "start_date",
             "end_date",
         )
+
+    def validate_school_class(self, value):
+        return _validate_own_class(value, self)
 
 
 class ActivityResultSerializer(serializers.ModelSerializer):

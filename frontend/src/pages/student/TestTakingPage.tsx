@@ -14,21 +14,17 @@ import { useCountUp } from "../../lib/useCountUp";
 import type { Achievement, TestAttempt, TestDetail } from "../../types";
 
 function useCountdown(startedAt: string | undefined, timeLimitMinutes: number | null | undefined) {
-  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!startedAt || !timeLimitMinutes) {
-      setRemainingSeconds(null);
-      return;
-    }
-    const deadline = new Date(startedAt).getTime() + timeLimitMinutes * 60_000;
-    const tick = () => setRemainingSeconds(Math.max(0, Math.round((deadline - Date.now()) / 1000)));
-    tick();
-    const interval = setInterval(tick, 1000);
+    if (!startedAt || !timeLimitMinutes) return;
+    const interval = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(interval);
   }, [startedAt, timeLimitMinutes]);
 
-  return remainingSeconds;
+  if (!startedAt || !timeLimitMinutes) return null;
+  const deadline = new Date(startedAt).getTime() + timeLimitMinutes * 60_000;
+  return Math.max(0, Math.round((deadline - nowMs) / 1000));
 }
 
 export function StudentTestTakingPage() {

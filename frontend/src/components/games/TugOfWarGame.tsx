@@ -84,11 +84,11 @@ export function TugOfWarGame({ session }: { session: GameSession }) {
   // Countdown before the first question.
   useEffect(() => {
     if (phase.kind !== "countdown") return;
-    if (phase.n === 0) {
-      setPhase({ kind: "playing" });
-      return;
-    }
-    const t = setTimeout(() => setPhase({ kind: "countdown", n: phase.n - 1 }), 700);
+    if (phase.n === 0) return;
+    const t = setTimeout(
+      () => setPhase(phase.n === 1 ? { kind: "playing" } : { kind: "countdown", n: phase.n - 1 }),
+      700,
+    );
     return () => clearTimeout(t);
   }, [phase]);
 
@@ -136,7 +136,8 @@ export function TugOfWarGame({ session }: { session: GameSession }) {
   function playAgain() {
     api
       .post<GameSession>("/games/", { subject: session.subject, game_type: session.game_type })
-      .then(({ data }) => navigate(`/student/games/${data.id}`, { replace: true }));
+      .then(({ data }) => navigate(`/student/games/${data.id}`, { replace: true }))
+      .catch(() => {});
   }
 
   const liveXp = total > 0 ? Math.round((MAX_GAME_XP * correctCount) / total) : 0;

@@ -77,7 +77,7 @@ def subject_pool_sizes(organization=None) -> list[dict]:
     ]
 
 
-def subject_availability() -> list[dict]:
+def subject_availability(organization=None) -> list[dict]:
     """Every subject with how many questions it can currently serve — lets a
     client tell "this subject isn't stocked yet" *before* a session is started,
     instead of letting a student start a game only to hit an error on the
@@ -86,10 +86,15 @@ def subject_availability() -> list[dict]:
     The count is the whole subject, not one class's share, because that is
     genuinely what a draw can reach (the class tiers are preferences, and the
     subject-wide bank plus the other classes are the fallbacks).
+
+    Scoped to `organization` when given: the question pool is per-tenant, so an
+    unscoped count would leak one school's stock levels to every other school's
+    students.
     """
-    counts = dict(
-        PooledQuestion.objects.filter(is_active=True).values_list("subject_id").annotate(total=Count("id"))
-    )
+    pool = PooledQuestion.objects.filter(is_active=True)
+    if organization is not None:
+        pool = pool.filter(organization=organization)
+    counts = dict(pool.values_list("subject_id").annotate(total=Count("id")))
     return [
         {"id": subject.id, "name": subject.name, "question_count": counts.get(subject.id, 0)}
         for subject in Subject.objects.all()

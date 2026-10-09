@@ -57,6 +57,7 @@ class AttendanceViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
         if user.is_teacher:
             return queryset.filter(
                 Q(lesson__teacher=user.teacher_profile)
+                | Q(lesson__secondary_teacher=user.teacher_profile)
                 | Q(lesson__school_class__class_teacher=user.teacher_profile)
             ).distinct()
         if user.is_student:
@@ -146,6 +147,9 @@ class AttendanceViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
                 "late_students": roster_serializer(
                     _students_with_status(Attendance.Status.LATE), many=True
                 ).data,
+                "present_students": roster_serializer(
+                    _students_with_status(Attendance.Status.PRESENT), many=True
+                ).data,
             }
         )
 
@@ -187,7 +191,9 @@ class AttendanceViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
         elif user.is_teacher:
             profile = user.teacher_profile
             queryset = queryset.filter(
-                Q(teacher=profile) | Q(school_class__class_teacher=profile)
+                Q(teacher=profile)
+                | Q(secondary_teacher=profile)
+                | Q(school_class__class_teacher=profile)
             ).distinct()
         elif user.is_student:
             profile = getattr(user, "student_profile", None)
@@ -235,13 +241,18 @@ class AttendanceViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
         days = min(max(days, 1), max_days)
 
         since = timezone.localdate() - timedelta(days=days - 1)
-        queryset = Attendance.objects.filter(lesson__date__gte=since)
+        queryset = in_organization(
+            request.user, Attendance.objects.filter(lesson__date__gte=since)
+        )
 
         grade = request.query_params.get("grade")
         if grade:
+            matching_classes = in_organization(
+                request.user, SchoolClass.objects.only("id", "name")
+            )
             matching_class_ids = [
                 school_class.id
-                for school_class in SchoolClass.objects.only("id", "name")
+                for school_class in matching_classes
                 if (match := _GRADE_PREFIX.match(school_class.name)) and match.group(1) == grade
             ]
             queryset = queryset.filter(lesson__school_class_id__in=matching_class_ids)
@@ -272,6 +283,10 @@ class AttendanceViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
 
     @staticmethod
     def _can_view_class(user, school_class) -> bool:
+        # First check the tenant boundary: a class id from any other organization
+        # must not be reachable even by a director.
+        if school_class.organization_id != user.active_organization_id:
+            return False
         if user.is_director:
             return True
         profile = getattr(user, "teacher_profile", None)

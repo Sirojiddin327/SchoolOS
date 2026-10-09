@@ -23,7 +23,7 @@ import { Link } from "react-router-dom";
 import { ClassGrowthGrid } from "../../components/ClassGrowthGrid";
 import { DashboardHero } from "../../components/DashboardHero";
 import { StatCard } from "../../components/StatCard";
-import { Card, CardTitle, Section, SectionLink } from "../../components/Surface";
+import { CardTitle, Section, SectionLink } from "../../components/Surface";
 import { EmptyState, ErrorState, LoadingState, StatSkeletonGrid } from "../../components/states";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -125,49 +125,47 @@ export function DirectorDashboardPage() {
 
           {/* ── Attendance health, as one readable strip ─────────────── */}
           <Section eyebrow="Bugun" title="Davomat holati" icon={ClipboardCheck} iconTone="emerald">
-            <Card className="overflow-hidden">
-              <div className="grid grid-cols-2 divide-line-soft sm:grid-cols-4 sm:divide-x">
-                {(
-                  [
-                    { label: "Keldi", value: data.today_attendance.present, tone: "emerald" as const, icon: CheckCircle2 },
-                    { label: "Kechikdi", value: data.today_attendance.late, tone: "amber" as const, icon: Clock },
-                    { label: "Kelmadi", value: data.today_attendance.absent, tone: "rose" as const, icon: UserX },
-                    { label: "Sababli", value: data.today_attendance.excused, tone: "slate" as const, icon: ClipboardCheck },
-                  ] as const
-                ).map((item) => (
-                  <div key={item.label} className="flex items-center gap-3 px-4 py-4 sm:px-5">
-                    <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${TONE_WELL[item.tone]}`}
-                    >
-                      <item.icon size={17} className={TONE_TEXT[item.tone]} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="tabular text-xl font-bold leading-none text-ink">{item.value}</p>
-                      <p className="mt-1 truncate text-xs text-ink-subtle">{item.label}</p>
-                    </div>
+            <div className="grid grid-cols-2 divide-line-soft sm:grid-cols-4 sm:divide-x">
+              {(
+                [
+                  { label: "Keldi", value: data.today_attendance.present, tone: "emerald" as const, icon: CheckCircle2 },
+                  { label: "Kechikdi", value: data.today_attendance.late, tone: "amber" as const, icon: Clock },
+                  { label: "Kelmadi", value: data.today_attendance.absent, tone: "rose" as const, icon: UserX },
+                  { label: "Sababli", value: data.today_attendance.excused, tone: "slate" as const, icon: ClipboardCheck },
+                ] as const
+              ).map((item) => (
+                <div key={item.label} className="flex items-center gap-3 py-3 pr-3">
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${TONE_WELL[item.tone]}`}
+                  >
+                    <item.icon size={17} className={TONE_TEXT[item.tone]} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="tabular text-xl font-bold leading-none text-ink">{item.value}</p>
+                    <p className="mt-1 truncate text-xs text-ink-subtle">{item.label}</p>
                   </div>
-                ))}
-              </div>
-
-              {attendanceRate !== null && (
-                <div className="flex items-center gap-3 border-t border-line-soft bg-surface-raised px-4 py-3 sm:px-5">
-                  <span className="text-xs font-medium text-ink-muted">Davomat darajasi</span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-sunken">
-                    <div
-                      className={`h-full rounded-full transition-[width] duration-700 ease-out ${
-                        attendanceRate >= 90
-                          ? "bg-emerald-500"
-                          : attendanceRate >= 75
-                            ? "bg-amber-500"
-                            : "bg-rose-500"
-                      }`}
-                      style={{ width: `${attendanceRate}%` }}
-                    />
-                  </div>
-                  <span className="tabular text-sm font-bold text-ink">{attendanceRate}%</span>
                 </div>
-              )}
-            </Card>
+              ))}
+            </div>
+
+            {attendanceRate !== null && (
+              <div className="mt-3 flex items-center gap-3">
+                <span className="shrink-0 text-xs font-medium text-ink-muted">Davomat darajasi</span>
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-sunken">
+                  <div
+                    className={`h-full rounded-full transition-[width] duration-700 ease-out ${
+                      attendanceRate >= 90
+                        ? "bg-emerald-500"
+                        : attendanceRate >= 75
+                          ? "bg-amber-500"
+                          : "bg-rose-500"
+                    }`}
+                    style={{ width: `${attendanceRate}%` }}
+                  />
+                </div>
+                <span className="tabular shrink-0 text-sm font-bold text-ink">{attendanceRate}%</span>
+              </div>
+            )}
           </Section>
 
           {/* ── Academic activity ────────────────────────────────────── */}
@@ -221,7 +219,7 @@ export function DirectorDashboardPage() {
                     icon={Trophy}
                   />
                 ) : (
-                  <Card className="overflow-hidden">
+                  <>
                     {allClasses.map((entry, i) => {
                       const top = allClasses[0]?.total_xp || 1;
                       const pct = Math.max(2, Math.round((entry.total_xp / top) * 100));
@@ -229,7 +227,7 @@ export function DirectorDashboardPage() {
                         <Link
                           key={entry.rank}
                           to="/director/rankings"
-                          className="flex items-center gap-4 border-b border-line-soft px-4 py-3 transition-colors last:border-0 hover:bg-surface-raised/60 sm:px-5"
+                          className="flex items-center gap-4 border-b border-line-soft py-3 transition-colors last:border-0 hover:bg-surface-raised/60"
                         >
                           <span
                             className={`tabular flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
@@ -262,14 +260,14 @@ export function DirectorDashboardPage() {
                         </Link>
                       );
                     })}
-                  </Card>
+                  </>
                 )}
               </Section>
             </div>
 
             <div>
               <Section eyebrow="Navigatsiya" title="Tezkor havolalar">
-                <Card className="p-2">
+                <div className="space-y-1">
                   {[
                     { to: "/director/attendance", label: "Davomat hisoboti", icon: ClipboardCheck, tone: "emerald" },
                     { to: "/director/rankings", label: "XP va reyting", icon: Trophy, tone: "amber" },
@@ -290,23 +288,21 @@ export function DirectorDashboardPage() {
                       <span className="truncate text-sm font-medium text-ink">{link.label}</span>
                     </Link>
                   ))}
-                </Card>
+                </div>
               </Section>
 
               <div className="mt-6">
                 <Section eyebrow="Boshqaruv" title="Maktab amaliyoti">
-                  <Card className="p-5">
-                    <CardTitle icon={School} tone="brand">
-                      {data.total_classes} ta sinf
-                    </CardTitle>
-                    <p className="text-sm text-ink-muted">
-                      Har bir sinf o'quvchilari, o'qituvchilari va o'sish ko'rsatkichlari bo'yicha
-                      alohida tahlil qilinadi.
-                    </p>
-                    <Link to="/director/classes" className="btn btn-secondary btn-sm mt-4 w-full">
-                      Sinflarni ko'rish
-                    </Link>
-                  </Card>
+                  <CardTitle icon={School} tone="brand">
+                    {data.total_classes} ta sinf
+                  </CardTitle>
+                  <p className="text-sm text-ink-muted">
+                    Har bir sinf o'quvchilari, o'qituvchilari va o'sish ko'rsatkichlari bo'yicha
+                    alohida tahlil qilinadi.
+                  </p>
+                  <Link to="/director/classes" className="btn btn-secondary btn-sm mt-4">
+                    Sinflarni ko'rish
+                  </Link>
                 </Section>
               </div>
             </div>

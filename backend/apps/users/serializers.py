@@ -1,9 +1,29 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from apps.organizations.models import OrganizationMembership
+from apps.organizations.services import add_member
+
 from .models import StudentProfile, TeacherProfile
 
 User = get_user_model()
+
+
+def _active_organization(serializer: serializers.Serializer):
+    """The tenant the creating director is signed in to.
+
+    Account creation is a write into one specific school: without this, a
+    profile row would be produced with no membership anywhere and the new
+    user would be unable to sign in.
+    """
+    request = serializer.context.get("request")
+    organization = getattr(request, "user", None)
+    organization = organization.active_organization if organization else None
+    if organization is None:
+        raise serializers.ValidationError(
+            {"organization": "Aktiv tashkilot aniqlanmadi — avval tashkilotga kiring."}
+        )
+    return organization
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -145,6 +165,11 @@ class TeacherSerializer(serializers.ModelSerializer):
             first_name=user_data.get("first_name", ""),
             last_name=user_data.get("last_name", ""),
         )
+        add_member(
+            user=user,
+            organization=_active_organization(self),
+            role=OrganizationMembership.Role.TEACHER,
+        )
         return TeacherProfile.objects.create(user=user, **validated_data)
 
     def update(self, instance, validated_data):
@@ -197,6 +222,15 @@ class StudentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("A user with this email already exists.")
         return value
 
+    def validate_school_class(self, value):
+        """A student may only be placed in a class of the active organization —
+        `school_class` is a writable FK, so without this check a director could
+        move their student into another school's roster."""
+        organization = _active_organization(self)
+        if value.organization_id != organization.pk:
+            raise serializers.ValidationError("Bu sinf boshqa tashkilotga tegishli.")
+        return value
+
     def create(self, validated_data):
         user_data = validated_data.pop("user")
         password = validated_data.pop("password", None)
@@ -209,6 +243,11 @@ class StudentSerializer(serializers.ModelSerializer):
             role=User.Role.STUDENT,
             first_name=user_data.get("first_name", ""),
             last_name=user_data.get("last_name", ""),
+        )
+        add_member(
+            user=user,
+            organization=_active_organization(self),
+            role=OrganizationMembership.Role.STUDENT,
         )
         return StudentProfile.objects.create(user=user, **validated_data)
 

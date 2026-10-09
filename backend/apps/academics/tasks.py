@@ -10,7 +10,7 @@ from apps.organizations.models import OrganizationMembership
 from apps.users.models import User
 
 from .models import DailyScheduleDigest
-from .services import DAILY_SCHEDULE_TITLE, format_daily_schedule
+from .services import DAILY_SCHEDULE_TITLE, format_daily_schedule, generate_lessons_for_week, week_monday
 
 logger = logging.getLogger(__name__)
 
@@ -112,3 +112,21 @@ def send_daily_schedules() -> int:
 
     logger.info("Daily schedule: %s sent, %s skipped (no Telegram), for %s", sent, skipped, day)
     return sent
+
+
+@shared_task
+def ensure_current_week_lessons() -> int:
+    """Generate Lesson rows for the week starting this Monday, idempotently.
+
+    The director can generate a week from the web UI, but nothing happened on
+    weeks nobody clicked — students and staff were left looking at "Bugun darslar
+    yo'q." in the bot and the morning digest. Running on Monday at 06:00 means
+    the week's lessons always exist by the time the 07:00 digest is sent.
+
+    Idempotent by design: lessons are keyed on (school_class, date, start_time),
+    so re-running never creates duplicates.
+    """
+    monday = week_monday(timezone.localdate())
+    lessons = generate_lessons_for_week(monday)
+    logger.info("Ensured lessons for the week of %s: %s lessons", monday, len(lessons))
+    return len(lessons)

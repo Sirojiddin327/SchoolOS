@@ -64,9 +64,13 @@ class CanMarkAttendanceTests(TestCase):
         self.own_teacher_user, self.own_teacher = make_teacher()
         self.class_teacher_user, self.class_teacher = make_teacher()
         self.other_teacher_user, self.other_teacher = make_teacher()
+        self.secondary_user, self.secondary_teacher = make_teacher()
         self.school_class = make_school_class(class_teacher=self.class_teacher)
         self.lesson = make_lesson(
-            school_class=self.school_class, subject=self.subject, teacher=self.own_teacher
+            school_class=self.school_class,
+            subject=self.subject,
+            teacher=self.own_teacher,
+            secondary_teacher=self.secondary_teacher,
         )
         self.director = make_director()
         self.student_user, _ = make_student(self.school_class)
@@ -76,6 +80,9 @@ class CanMarkAttendanceTests(TestCase):
 
     def test_lessons_own_teacher_can_mark(self):
         self.assertTrue(can_mark_attendance(self.own_teacher_user, self.lesson))
+
+    def test_secondary_teacher_can_mark(self):
+        self.assertTrue(can_mark_attendance(self.secondary_user, self.lesson))
 
     def test_class_teacher_can_mark_even_when_not_teaching_the_lesson(self):
         self.assertTrue(can_mark_attendance(self.class_teacher_user, self.lesson))

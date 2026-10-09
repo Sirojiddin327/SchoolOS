@@ -21,6 +21,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { StatCard } from "../../components/StatCard";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
 import { api } from "../../lib/api";
+import { localISODate } from "../../lib/schoolTime";
 import { useAuth } from "../../lib/auth";
 import { MONTH_NAMES_UZ, periodTimes, schoolWeekdayOf, WEEKDAY_NAMES_UZ } from "../../lib/schoolTime";
 import type {
@@ -54,7 +55,7 @@ function useNow() {
 }
 
 function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localISODate(d);
 }
 
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string; icon: LucideIcon }[] = [
@@ -156,10 +157,10 @@ function AttendanceForm({ lesson, onDone }: { lesson: Lesson; onDone: () => void
 
   return (
     <div className="space-y-3">
-      <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+      <div className="divide-y divide-line-soft">
         {roster.map((student) => (
-          <div key={student.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+          <div key={student.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
               {student.full_name}
             </span>
             <div className="flex flex-wrap gap-1">
@@ -463,7 +464,7 @@ export function TeacherAttendancePage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Bugungi darslar</h2>
+        <h2 className="mb-3 section-title">Bugungi darslar</h2>
 
         {loading && <LoadingState />}
         {!loading && errored && <ErrorState />}
@@ -494,7 +495,7 @@ export function TeacherAttendancePage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Ertangi darslar</h2>
+        <h2 className="mb-3 section-title">Ertangi darslar</h2>
         {tomorrowSlotsQuery.isLoading && <LoadingState />}
         {tomorrowSlotsQuery.isError && <ErrorState />}
         {tomorrowSlotsQuery.data && tomorrowSlots.length === 0 && (

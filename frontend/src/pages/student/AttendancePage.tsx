@@ -6,11 +6,12 @@ import { Badge } from "../../components/Badge";
 import { Field, Input } from "../../components/form";
 import { PageHeader } from "../../components/PageHeader";
 import { StatCard } from "../../components/StatCard";
+import { Section } from "../../components/Surface";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
 import { Table, Tbody, Td, Th, Thead, Tr } from "../../components/table";
 import { api } from "../../lib/api";
 import type { Tone } from "../../lib/tones";
-import { SCHOOL_WEEKDAYS } from "../../lib/schoolTime";
+import { localISODate, SCHOOL_WEEKDAYS } from "../../lib/schoolTime";
 import type {
   AttendanceRecord,
   AttendanceStatus,
@@ -63,7 +64,7 @@ function currentWeekRange(): { monday: string; saturday: string } {
   monday.setDate(now.getDate() + diffToMonday);
   const saturday = new Date(monday);
   saturday.setDate(monday.getDate() + 5);
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const iso = (d: Date) => localISODate(d);
   return { monday: iso(monday), saturday: iso(saturday) };
 }
 
@@ -83,8 +84,7 @@ function WeeklyStrip() {
   }
 
   return (
-    <div className="card p-5">
-      <p className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Bu hafta</p>
+    <Section title="Bu hafta">
       {isLoading && <LoadingState label="Yuklanmoqda..." />}
       {isError && <ErrorState message="Haftalik davomat yuklanmadi." />}
       {data && (
@@ -92,7 +92,7 @@ function WeeklyStrip() {
           {SCHOOL_WEEKDAYS.map((day, index) => {
             const date = new Date(monday);
             date.setDate(date.getDate() + index);
-            const iso = date.toISOString().slice(0, 10);
+            const iso = localISODate(date);
             const records = byDate.get(iso) ?? [];
             const worst = SEVERITY.find((s) => records.some((r) => r.status === s));
             const tone = worst ? DAY_TONE[worst] : DAY_TONE.NONE;
@@ -109,7 +109,7 @@ function WeeklyStrip() {
           })}
         </div>
       )}
-    </div>
+    </Section>
   );
 }
 
@@ -151,8 +151,7 @@ function TodayLessonsSection() {
   });
 
   return (
-    <div className="card p-5">
-      <p className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Bugungi darslar</p>
+    <Section title="Bugungi darslar">
       {isLoading && <LoadingState label="Yuklanmoqda..." />}
       {isError && <ErrorState message="Bugungi darslar yuklanmadi." />}
       {data && data.length === 0 && <EmptyState title="Bugun darsingiz yo'q" />}
@@ -163,10 +162,10 @@ function TodayLessonsSection() {
             return (
               <div key={lesson.id} className="flex flex-wrap items-center gap-2 py-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-slate-900 dark:text-slate-50">
+                  <p className="truncate font-semibold text-ink">
                     {lesson.subject_name}
                   </p>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
                     <span className="inline-flex items-center gap-1">
                       <Clock3 className="h-3.5 w-3.5" />
                       {lesson.start_time.slice(0, 5)}–{lesson.end_time.slice(0, 5)}
@@ -183,7 +182,7 @@ function TodayLessonsSection() {
           })}
         </div>
       )}
-    </div>
+    </Section>
   );
 }
 

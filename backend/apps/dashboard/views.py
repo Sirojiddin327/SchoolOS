@@ -12,6 +12,7 @@ from apps.academics.models import Lesson
 from apps.attendance.models import Attendance
 from apps.attendance.services import count_by_status
 from apps.common.permissions import IsDirector, IsStudent, IsTeacher
+from apps.common.tenancy import in_organization, students_in_organization
 from apps.gamification.models import XPTransaction
 from apps.learning.models import Activity, Test
 from apps.schools.models import SchoolClass
@@ -46,22 +47,29 @@ class DirectorDashboardView(APIView):
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsDirector]
 
     def get(self, request):
+        user = request.user
         today = timezone.localdate()
-        today_lessons = Lesson.objects.filter(date=today)
-        total_xp_awarded = XPTransaction.objects.aggregate(total=Sum("amount"))["total"] or 0
-        top_class = SchoolClass.objects.order_by("-total_xp").first()
+        today_lessons = in_organization(user, Lesson.objects.filter(date=today))
+        total_xp_awarded = (
+            in_organization(user, XPTransaction.objects).aggregate(total=Sum("amount"))["total"] or 0
+        )
+        top_class = in_organization(user, SchoolClass.objects).order_by("-total_xp").first()
+        students = students_in_organization(user, StudentProfile.objects.all())
+        teachers = in_organization(
+            user, TeacherProfile.objects.all(), field="user__organization_memberships__organization"
+        )
 
         return Response(
             {
-                "total_students": StudentProfile.objects.count(),
-                "total_teachers": TeacherProfile.objects.count(),
-                "total_classes": SchoolClass.objects.count(),
+                "total_students": students.count(),
+                "total_teachers": teachers.distinct().count(),
+                "total_classes": in_organization(user, SchoolClass.objects).count(),
                 "today_lessons": today_lessons.count(),
                 "today_attendance": _attendance_counts(
-                    Attendance.objects.filter(lesson__date=today)
+                    in_organization(user, Attendance.objects.filter(lesson__date=today))
                 ),
-                "total_tests": Test.objects.count(),
-                "total_activities": Activity.objects.count(),
+                "total_tests": in_organization(user, Test.objects).count(),
+                "total_activities": in_organization(user, Activity.objects).count(),
                 "total_xp_awarded": total_xp_awarded,
                 "top_class": (
                     {"name": top_class.name, "total_xp": top_class.total_xp} if top_class else None
@@ -81,14 +89,21 @@ class TeacherDashboardView(APIView):
 
         today_lessons = (
             Lesson.objects.filter(
-                Q(teacher=profile) | Q(school_class__class_teacher=profile), date=today
+                Q(teacher=profile)
+                | Q(secondary_teacher=profile)
+                | Q(school_class__class_teacher=profile),
+                date=today,
             )
             .select_related("subject", "school_class")
             .distinct()
             .order_by("start_time")
         )
         my_classes_count = (
-            SchoolClass.objects.filter(Q(class_teacher=profile) | Q(lessons__teacher=profile))
+            SchoolClass.objects.filter(
+                Q(class_teacher=profile)
+                | Q(lessons__teacher=profile)
+                | Q(lessons__secondary_teacher=profile)
+            )
             .distinct()
             .count()
         )
@@ -192,7 +207,9 @@ class SchoolReportView(APIView):
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsDirector]
 
     def get(self, request):
-        return Response(reports.build_school_report(days=_report_period(request)))
+        return Response(
+            reports.build_school_report(user=request.user, days=_report_period(request))
+        )
 
 
 class SchoolReportAISummaryView(APIView):
@@ -201,8 +218,10 @@ class SchoolReportAISummaryView(APIView):
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsDirector]
 
     def post(self, request):
-        report = reports.build_school_report(days=_report_period(request))
-        summary = reports.ai_school_summary(report, refresh=bool(request.data.get("refresh")))
+        report = reports.build_school_report(user=request.user, days=_report_period(request))
+        summary = reports.ai_school_summary(
+            report, user=request.user, refresh=bool(request.data.get("refresh"))
+        )
         if summary is None:
             return Response(
                 {"detail": "AI hozircha javob bera olmadi. Birozdan so'ng qayta urinib ko'ring."},

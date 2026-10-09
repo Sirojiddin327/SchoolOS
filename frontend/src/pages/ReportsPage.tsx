@@ -68,20 +68,21 @@ export function ReportsPage() {
     queryFn: async () => (await api.get<Paginated<SchoolClass>>("/classes/")).data,
   });
   const classes = classesQuery.data?.results ?? [];
-
-  useEffect(() => {
-    if (classId === null && classes.length > 0) setClassId(classes[0].id);
-  }, [classId, classes]);
+  const effectiveClassId = classId ?? classes[0]?.id ?? null;
 
   const reportQuery = useQuery({
-    queryKey: ["class-report", classId, days],
-    queryFn: async () => (await api.get<ClassReport>(`/reports/classes/${classId}/`, { params: { days } })).data,
-    enabled: classId !== null,
+    queryKey: ["class-report", effectiveClassId, days],
+    queryFn: async () => {
+      if (!effectiveClassId) return null;
+      return (await api.get<ClassReport>(`/reports/classes/${effectiveClassId}/`, { params: { days } })).data;
+    },
+    enabled: effectiveClassId !== null,
   });
 
   const aiMutation = useMutation({
     mutationFn: async (refresh: boolean) =>
-      (await api.post<ClassReportAISummary>(`/reports/classes/${classId}/ai-summary/?days=${days}`, { refresh })).data,
+      (await api.post<ClassReportAISummary>(`/reports/classes/${effectiveClassId}/ai-summary/?days=${days}`, { refresh }))
+        .data,
   });
 
   // A new class or period makes the previous AI write-up stale.
@@ -120,7 +121,7 @@ export function ReportsPage() {
           <Select
             aria-label="Sinf"
             className="sm:w-56"
-            value={classId ?? ""}
+            value={effectiveClassId ?? ""}
             onChange={(event) => setClassId(Number(event.target.value))}
           >
             {classes.map((cls) => (
@@ -133,7 +134,7 @@ export function ReportsPage() {
         </div>
       )}
 
-      {reportQuery.isLoading && classId !== null && <LoadingState label="Hisobot tayyorlanmoqda..." />}
+      {reportQuery.isLoading && <LoadingState label="Hisobot tayyorlanmoqda..." />}
       {reportQuery.isError && <ErrorState message="Hisobotni yuklab bo'lmadi." />}
 
       {report && (
@@ -180,7 +181,7 @@ export function ReportsPage() {
 
           <div className="space-y-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <h2 className="section-title">
                 O'quvchilar · {report.summary.students}
               </h2>
               <FilterPills<StatusFilter>
@@ -301,17 +302,17 @@ function barTone(avg: number): string {
 
 function SubjectBars({ subjects }: { subjects: ClassReport["subjects"] }) {
   return (
-    <div className="card p-5">
-      <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Fanlar bo'yicha o'rtacha natija</h2>
-      <div className="mt-4 space-y-3">
+    <div>
+      <h2 className="section-title">Fanlar bo'yicha o'rtacha natija</h2>
+      <div className="mt-3 space-y-3">
         {subjects.map((subject) => (
           <div key={subject.subject} className="grid grid-cols-[minmax(0,8rem)_1fr_auto] items-center gap-3 text-sm">
-            <span className="truncate text-slate-700 dark:text-slate-300">{subject.subject}</span>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <span className="truncate text-ink">{subject.subject}</span>
+            <div className="h-2 overflow-hidden rounded-full bg-surface-sunken">
               <div className={`h-full rounded-full ${barTone(subject.avg)}`} style={{ width: `${subject.avg}%` }} />
             </div>
-            <span className="w-20 text-right text-xs text-slate-500 dark:text-slate-400">
-              <span className="font-semibold text-slate-900 dark:text-slate-50">{Math.round(subject.avg)}%</span> ·{" "}
+            <span className="w-20 text-right text-xs text-ink-muted">
+              <span className="font-semibold text-ink">{Math.round(subject.avg)}%</span> ·{" "}
               {subject.results} ta
             </span>
           </div>

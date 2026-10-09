@@ -36,12 +36,23 @@ STATUS_LABEL_UZ = {
 
 
 def can_mark_attendance(user, lesson: Lesson) -> bool:
+    """Directors and the lesson/class teacher may mark attendance — but only for
+    a lesson that belongs to the caller's active organization. `Lesson` is a
+    writable FK in the serializer, so without this a director could mark
+    attendance on another school's lesson by id."""
+    active_org = user.active_organization_id
+    if active_org is None or lesson.organization_id != active_org:
+        return False
     if user.is_director:
         return True
     profile = getattr(user, "teacher_profile", None)
     if profile is None:
         return False
-    return profile.pk == lesson.teacher_id or profile.pk == lesson.school_class.class_teacher_id
+    return (
+        profile.pk == lesson.teacher_id
+        or profile.pk == lesson.secondary_teacher_id
+        or profile.pk == lesson.school_class.class_teacher_id
+    )
 
 
 def _aware(d, t):

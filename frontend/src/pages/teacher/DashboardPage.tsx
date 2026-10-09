@@ -17,7 +17,7 @@ import { DashboardHero } from "../../components/DashboardHero";
 import { GradientActionCard } from "../../components/GradientActionCard";
 import { LessonList } from "../../components/LessonList";
 import { StatCard } from "../../components/StatCard";
-import { Card, Section, SectionLink } from "../../components/Surface";
+import { Section, SectionLink } from "../../components/Surface";
 import { Table, Tbody, Td, TdStrong, Th, Thead, Tr } from "../../components/table";
 import { EmptyState, ErrorState, StatSkeletonGrid } from "../../components/states";
 import { api } from "../../lib/api";
@@ -208,7 +208,7 @@ export function TeacherDashboardPage() {
 
             <div className="space-y-3">
               <Section eyebrow="Havola" title="Tezkor amallar">
-                <Card className="p-2">
+                <div className="space-y-1">
                   {[
                     { to: "/teacher/attendance", label: "Davomat olish", icon: ClipboardCheck, tone: "emerald" as Tone },
                     { to: "/teacher/tasks", label: "Vazifa berish", icon: Send, tone: "violet" as Tone },
@@ -218,7 +218,7 @@ export function TeacherDashboardPage() {
                     <Link
                       key={link.to}
                       to={link.to}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-raised"
+                      className="hover-card flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors"
                     >
                       <span
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${TONE_WELL[link.tone]}`}
@@ -228,7 +228,7 @@ export function TeacherDashboardPage() {
                       <span className="truncate text-sm font-medium text-ink">{link.label}</span>
                     </Link>
                   ))}
-                </Card>
+                </div>
               </Section>
 
               {classes && classes.results.length === 0 && (

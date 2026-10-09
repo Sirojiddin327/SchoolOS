@@ -72,6 +72,27 @@ def switch_organization(user, organization):
     return organization
 
 
+def add_member(*, user, organization, role, status=OrganizationMembership.Status.ACTIVE):
+    """Give `user` `role` inside `organization`.
+
+    Idempotent: an account that already holds a membership there keeps the role
+    it has — re-creating a teacher must never silently demote an owner. Used by
+    every "director creates an account" flow, because a `User` row on its own
+    authorizes nothing: without this, a freshly created teacher or student can
+    sign in but is rejected at login with "not a member of any organization".
+    """
+    membership, _created = OrganizationMembership.objects.get_or_create(
+        user=user,
+        organization=organization,
+        defaults={"role": role, "status": status},
+    )
+    if user.active_organization_id is None:
+        user.active_organization = organization
+        user.save(update_fields=["active_organization"])
+        user._active_membership_cache = membership
+    return membership
+
+
 def create_organization_with_owner(*, name, slug, type, timezone, owner):
     """Create an organization and its first owner in one transaction.
 

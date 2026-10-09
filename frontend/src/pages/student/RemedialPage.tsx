@@ -47,15 +47,12 @@ export function StudentRemedialPage() {
   });
 
   useEffect(() => {
-    if (!session) return;
-    if (session.explanation) {
-      setPhase((p) => (p === "explaining" ? "explained" : p));
-    } else if (phase === "explaining" && !explainMutation.isPending) {
-      explainMutation.mutate();
-    }
-    // Only re-trigger when the session identity or its explanation presence changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.id, session?.explanation]);
+    if (!session || session.explanation) return;
+    if (phase === "explaining" && !explainMutation.isPending && !error) explainMutation.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-trigger when identity/explanation presence changes
+  }, [session?.id, session?.explanation, phase, error]);
+
+  const showingPrePlay = phase !== "playing" && phase !== "done";
 
   const gameQuery = useQuery({
     queryKey: ["remedial", id, "game"],
@@ -95,22 +92,22 @@ export function StudentRemedialPage() {
         <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">{session.subject_name} — mashq</h1>
       </div>
 
-      {phase === "explaining" && !session.explanation && (
+      {showingPrePlay && !session.explanation && (
         <div className="card p-8 text-center">
-          <LoadingState label="AI mavzuni tushuntirmoqda..." />
+          {error ? (
+            <>
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+              <PrimaryButton className="mt-3" onClick={() => explainMutation.mutate()}>
+                Qayta urinish
+              </PrimaryButton>
+            </>
+          ) : (
+            <LoadingState label="AI mavzuni tushuntirmoqda..." />
+          )}
         </div>
       )}
 
-      {error && phase === "explaining" && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-center dark:border-red-500/30 dark:bg-red-500/10">
-          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-          <PrimaryButton className="mt-3" onClick={() => explainMutation.mutate()}>
-            Qayta urinish
-          </PrimaryButton>
-        </div>
-      )}
-
-      {phase === "explained" && session.explanation && (
+      {showingPrePlay && session.explanation && (
         <div className="space-y-4">
           <div className="flex items-start gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-5 dark:border-violet-500/30 dark:bg-violet-500/10">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white">

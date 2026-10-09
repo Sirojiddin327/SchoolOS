@@ -83,6 +83,17 @@ class MembershipCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"user": "Bu foydalanuvchi tashkilotga allaqach a'zo."}
             )
+        # ADMIN/DIRECTOR hands like these shouldn't be abusable: only the
+        # owner may crown a new owner. Anyone else promoting to OWNER would
+        # be a privilege-inversion vector (take over the tenant in one call).
+        if (
+            attrs["role"] == OrganizationMembership.Role.OWNER
+            and self.context.get("request").user.active_role
+            != OrganizationMembership.Role.OWNER
+        ):
+            raise serializers.ValidationError(
+                {"role": "Faqat tashkilot egasi yangi ega tayinlashi mumkin."}
+            )
         if user.active_organization_id is None:
             user.active_organization = organization
             user.save(update_fields=["active_organization"])

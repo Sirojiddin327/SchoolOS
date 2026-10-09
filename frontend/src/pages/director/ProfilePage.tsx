@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { GraduationCap, School, Users } from "lucide-react";
 
 import { ChangePasswordForm } from "../../components/ChangePasswordForm";
 import { PageHeader } from "../../components/PageHeader";
-import { ProfileHeaderCard } from "../../components/ProfileHeaderCard";
-import { StatCard } from "../../components/StatCard";
+import { ProfileHeaderCard, ProfileStat } from "../../components/ProfileHeaderCard";
+import { Section } from "../../components/Surface";
 import { TelegramConnect } from "../../components/TelegramConnect";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -31,38 +30,35 @@ export function DirectorProfilePage() {
         roleLabel="Direktor"
         stats={
           <>
-            <StatCard label="O'quvchilar" value={data?.total_students ?? 0} icon={Users} tone="brand" />
-            <StatCard label="O'qituvchilar" value={data?.total_teachers ?? 0} icon={GraduationCap} tone="violet" />
-            <StatCard label="Sinflar" value={data?.total_classes ?? 0} icon={School} tone="amber" />
+            <ProfileStat label="O'quvchilar" value={data?.total_students ?? 0} tone="brand" />
+            <ProfileStat label="O'qituvchilar" value={data?.total_teachers ?? 0} tone="violet" />
+            <ProfileStat label="Sinflar" value={data?.total_classes ?? 0} tone="amber" />
           </>
         }
       />
 
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="card p-6">
-          <h2 className="mb-3 font-semibold text-slate-900 dark:text-slate-50">Hisob ma'lumotlari</h2>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-slate-500 dark:text-slate-400">Email</dt>
-              <dd className="truncate text-slate-800 dark:text-slate-100">{user?.email}</dd>
+        <Section title="Hisob ma'lumotlari">
+          <dl className="divide-y divide-line-soft text-sm">
+            <div className="flex justify-between gap-4 py-2.5">
+              <dt className="text-ink-muted">Email</dt>
+              <dd className="truncate text-ink">{user?.email}</dd>
             </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-slate-500 dark:text-slate-400">Login</dt>
-              <dd className="truncate text-slate-800 dark:text-slate-100">{user?.username}</dd>
+            <div className="flex justify-between gap-4 py-2.5">
+              <dt className="text-ink-muted">Login</dt>
+              <dd className="truncate text-ink">{user?.username}</dd>
             </div>
           </dl>
-        </div>
+        </Section>
 
-        <div className="card p-6">
-          <h2 className="mb-3 font-semibold text-slate-900 dark:text-slate-50">Parolni o'zgartirish</h2>
+        <Section title="Parolni o'zgartirish">
           <ChangePasswordForm />
-        </div>
+        </Section>
       </div>
 
-      <div className="card p-6">
-        <h2 className="mb-3 font-semibold text-slate-900 dark:text-slate-50">Telegram</h2>
+      <Section title="Telegram">
         <TelegramConnect />
-      </div>
+      </Section>
     </div>
   );
 }

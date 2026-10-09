@@ -62,7 +62,7 @@ export function QuestionPoolsPage() {
         }
       />
 
-      <div className="flex flex-wrap items-end gap-3 card p-5">
+      <div className="flex flex-wrap items-end gap-3">
         <Field label="Sinf">
           <Select value={schoolClass} onChange={(e) => setSchoolClass(e.target.value)} className="min-w-[160px]">
             <option value="">— tanlang —</option>
@@ -94,7 +94,7 @@ export function QuestionPoolsPage() {
           <Sparkles size={15} />
           {refill.isPending ? "Tayyorlanmoqda..." : "Pool'ni to'ldirish"}
         </PrimaryButton>
-        {lastResult && <p className="w-full text-sm text-slate-500 dark:text-slate-400">{lastResult}</p>}
+        {lastResult && <p className="w-full text-sm text-ink-muted">{lastResult}</p>}
       </div>
 
       {isLoading && <LoadingState />}

@@ -1,6 +1,25 @@
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *
 
 DEBUG = False
+
+if not env("DJANGO_SECRET_KEY", default=""):
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY is required in production. Set it to a fresh random "
+        "value (python -c \"from django.core.management.utils import "
+        "get_random_secret_key; print(get_random_secret_key())\")."
+    )
+
+# Host-header protection: `.base` falls back to `["*"]`, which an exposed
+# deployment must never run with. Refuse to boot rather than silently accept
+# any Host header.
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
+if not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS:
+    raise ImproperlyConfigured(
+        "DJANGO_ALLOWED_HOSTS must name the real hostnames (no wildcards) in "
+        "production."
+    )
 
 # ---------- Security ----------
 SECURE_BROWSER_XSS_FILTER = True

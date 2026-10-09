@@ -142,7 +142,7 @@ export function StudentGamesPage() {
       <PageHeader icon={Gamepad2} title="O'yinlar" />
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">1. Fan tanlang</h2>
+        <h2 className="mb-3 section-title">1. Fan tanlang</h2>
         {isLoading && <LoadingState />}
         {isError && <ErrorState />}
         {subjects && subjects.results.length === 0 && <EmptyState title="Hali fan qo'shilmagan" />}
@@ -209,7 +209,7 @@ export function StudentGamesPage() {
 
       {selectedSubject !== null && !selectedSubjectIsEmpty && (
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">2. O'yinni tanlang</h2>
+          <h2 className="mb-3 section-title">2. O'yinni tanlang</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {GAME_OPTIONS.map((option) => (
               <button
@@ -231,9 +231,9 @@ export function StudentGamesPage() {
             ))}
           </div>
           {levelFor && (
-            <div className="mt-4 animate-pop-in card p-5">
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">3. Qiyinlikni tanlang</h3>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-4 animate-pop-in">
+              <h3 className="mb-3 section-title">3. Qiyinlikni tanlang</h3>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {DIFFICULTY_OPTIONS.map((level) => (
                   <button
                     key={level.value}
@@ -257,15 +257,15 @@ export function StudentGamesPage() {
 
       {history && history.results.length > 0 && (
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">So'nggi o'yinlar</h2>
-          <div className="divide-y divide-slate-100 card">
+          <h2 className="mb-3 section-title">So'nggi o'yinlar</h2>
+          <div className="divide-y divide-line-soft">
             {history.results.slice(0, 8).map((session) => (
-              <div key={session.id} className="flex items-center justify-between gap-3 px-4 py-3">
+              <div key={session.id} className="flex items-center justify-between gap-3 py-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                  <p className="text-sm font-medium text-ink">
                     {session.subject_name} · {session.game_type_display}
                   </p>
-                  <p className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+                  <p className="flex items-center gap-1 text-xs text-ink-subtle">
                     <Clock size={11} />
                     {new Date(session.created_at).toLocaleDateString("uz-UZ")}
                   </p>

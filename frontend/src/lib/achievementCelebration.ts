@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import type { Achievement } from "../types";
 import { achievementCelebrations } from "./celebrationTracking";
@@ -17,19 +17,15 @@ export function markAchievementsCelebrated(ids: number[]): void {
  * — e.g. a teacher grading an activity submission later.
  */
 export function useNewlyUnlockedAchievements(achievements: Achievement[] | undefined): Achievement[] {
-  const [celebrated, setCelebrated] = useState<Achievement[]>([]);
-
-  useEffect(() => {
-    if (!achievements) return;
+  const fresh = useMemo(() => {
+    if (!achievements) return [];
     const seen = achievementCelebrations.getSeen();
-    const fresh = achievements.filter((a) => a.unlocked && !seen.has(a.id));
-    if (fresh.length > 0) {
-      setCelebrated(fresh);
-      achievementCelebrations.markSeen(fresh.map((a) => a.id));
-    }
-    // Only ever re-derive when the achievements list itself changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return achievements.filter((a) => a.unlocked && !seen.has(a.id));
   }, [achievements]);
 
-  return celebrated;
+  useEffect(() => {
+    if (fresh.length > 0) achievementCelebrations.markSeen(fresh.map((a) => a.id));
+  }, [fresh]);
+
+  return fresh;
 }

@@ -34,22 +34,22 @@ export function StudentClassPage() {
 
       {myClass && (
         <>
-          <div className="card p-5">
-            <p className="text-lg font-semibold text-slate-900 dark:text-slate-50">{myClass.name}</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+          <div>
+            <p className="text-lg font-semibold text-ink">{myClass.name}</p>
+            <p className="text-sm text-ink-muted">
               Sinf rahbari: {myClass.class_teacher_name ?? "tayinlanmagan"} ·{" "}
               {myClass.students_count} o'quvchi
             </p>
           </div>
 
           <div>
-            <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Sinfdoshlarim</h2>
+            <h2 className="mb-3 text-sm font-semibold text-ink">Sinfdoshlarim</h2>
             {rosterLoading && <LoadingState />}
             {roster && roster.length > 0 && (
-              <ul className="divide-y divide-slate-100 card">
+              <ul className="divide-y divide-line-soft">
                 {roster.map((student) => (
-                  <li key={student.id} className="px-4 py-3 text-sm">
-                    <span className="text-slate-800 dark:text-slate-100">{student.full_name}</span>
+                  <li key={student.id} className="py-3 text-sm">
+                    <span className="text-ink">{student.full_name}</span>
                   </li>
                 ))}
               </ul>

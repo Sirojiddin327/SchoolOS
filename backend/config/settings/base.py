@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     # Third-party
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "corsheaders",
     "drf_spectacular",
@@ -207,6 +208,10 @@ CELERY_BEAT_SCHEDULE = {
         # all year (no DST), but the crontab is still resolved through the
         # timezone rather than offset, so it stays correct if that ever changes.
         "schedule": crontab(hour=7, minute=0),
+    },
+    "ensure-current-week-lessons": {
+        "task": "apps.academics.tasks.ensure_current_week_lessons",
+        "schedule": crontab(hour=6, minute=0, day_of_week=1),  # Monday 06:00, before the 07:00 digest
     },
     "remind-unmarked-attendance": {
         "task": "apps.attendance.tasks.remind_unmarked_attendance",

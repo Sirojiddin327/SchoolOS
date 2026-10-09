@@ -105,7 +105,10 @@ async def today_lessons_text(user) -> str:
     elif user.is_teacher:
         profile = await TeacherProfile.objects.aget(user=user)
         queryset = Lesson.objects.filter(
-            Q(teacher=profile) | Q(school_class__class_teacher=profile), date=today
+            Q(teacher=profile)
+            | Q(secondary_teacher=profile)
+            | Q(school_class__class_teacher=profile),
+            date=today,
         ).distinct()
     else:
         return "Bu buyruq faqat o'quvchi va o'qituvchilar uchun."
@@ -146,7 +149,7 @@ async def my_classes_text(user) -> str:
     classes = [
         cls
         async for cls in SchoolClass.objects.filter(
-            Q(class_teacher=profile) | Q(lessons__teacher=profile)
+            Q(class_teacher=profile) | Q(lessons__teacher=profile) | Q(lessons__secondary_teacher=profile)
         ).distinct()
     ]
     if not classes:
@@ -245,7 +248,7 @@ async def class_xp_text(user) -> str:
     classes = [
         cls
         async for cls in SchoolClass.objects.filter(
-            Q(class_teacher=profile) | Q(lessons__teacher=profile)
+            Q(class_teacher=profile) | Q(lessons__teacher=profile) | Q(lessons__secondary_teacher=profile)
         ).distinct()
     ]
     if not classes:

@@ -12,9 +12,7 @@ import axios from "axios";
 const NO_QUESTIONS_CODE = "no_questions_for_subject";
 
 export const NO_QUESTIONS_TITLE = "Bu fan uchun savollar hali yo'q";
-export const NO_QUESTIONS_HINT =
-  "O'yinni o'ynash uchun avval bu fandan savollar qo'shilishi kerak. O'qituvchi yoki direktor savollar "
-  "qo'shgach, o'yin shu fan bilan ishlaydi.";
+export const NO_QUESTIONS_HINT = `O'yinni o'ynash uchun avval bu fandan savollar qo'shilishi kerak. O'qituvchi yoki direktor savollar qo'shgach, o'yin shu fan bilan ishlaydi.`;
 
 /** Whether an axios error is the "subject has no questions" empty state. */
 export function isNoQuestionsError(error: unknown): boolean {

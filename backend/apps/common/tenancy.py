@@ -22,6 +22,16 @@ def organization_of(user) -> object | None:
     return user.active_organization
 
 
+def request_active_organization(request) -> object | None:
+    """`organization_of` for a DRF request, None for anonymous/bare requests.
+
+    Serializer `validate_*` methods run with `self.context["request"]` present,
+    so this is the one-liner that keeps a writable foreign key from being
+    another school's row: if there is no tenant, the write is refused.
+    """
+    return organization_of(getattr(request, "user", None))
+
+
 def in_organization(user, queryset: QuerySet, *, field: str = "organization") -> QuerySet:
     """`queryset` restricted to `user`'s active organization.
 

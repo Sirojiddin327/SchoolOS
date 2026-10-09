@@ -124,7 +124,7 @@ function TaskChecklistCard({ entries }: { entries: ChecklistEntry[] }) {
   const totalXp = entries.reduce((sum, entry) => sum + entry.maxXp, 0);
 
   return (
-    <Card className="p-5">
+    <section className="min-w-0">
       <CardTitle icon={Target} tone="violet">Yaqin vazifalar</CardTitle>
       {entries.length === 0 ? (
         <EmptyState
@@ -164,13 +164,13 @@ function TaskChecklistCard({ entries }: { entries: ChecklistEntry[] }) {
           </p>
         </>
       )}
-    </Card>
+    </section>
   );
 }
 
 function TopStudentsCard({ entries }: { entries: StudentLeaderboardEntry[] }) {
   return (
-    <Card className="p-5">
+    <section className="min-w-0">
       <CardTitle
         icon={Trophy}
         tone="amber"
@@ -183,7 +183,7 @@ function TopStudentsCard({ entries }: { entries: StudentLeaderboardEntry[] }) {
         Reyting yetakchilari
       </CardTitle>
       <LeaderboardPodium entries={entries} />
-    </Card>
+    </section>
   );
 }
 
@@ -428,15 +428,13 @@ export function StudentDashboardPage() {
           </Section>
 
           <Section title="XP tarixi" eyebrow="So'nggi 7 kun" icon={Trophy} iconTone="amber">
-            <Card className="p-4">
-              {xpHistory ? (
-                <Suspense fallback={<LoadingState />}>
-                  <XpHistoryChart transactions={xpHistory.results} />
-                </Suspense>
-              ) : (
-                <LoadingState />
-              )}
-            </Card>
+            {xpHistory ? (
+              <Suspense fallback={<LoadingState />}>
+                <XpHistoryChart transactions={xpHistory.results} />
+              </Suspense>
+            ) : (
+              <LoadingState />
+            )}
           </Section>
         </div>
 
@@ -446,8 +444,8 @@ export function StudentDashboardPage() {
           <TaskChecklistCard entries={checklistEntries} />
 
           {totalTestCount > 0 && (
-            <Card className="flex flex-col items-center gap-3 p-5 text-center">
-              <h3 className="mb-0 flex w-full items-center gap-2 text-sm font-semibold text-ink">
+            <section className="flex flex-col items-center gap-3 text-center">
+              <h3 className="flex w-full items-center gap-2 text-sm font-semibold text-ink">
                 <Target size={16} className={TONE_DOT.brand} />
                 Testlar
               </h3>
@@ -458,11 +456,11 @@ export function StudentDashboardPage() {
                 <span className="mt-0.5 text-[10px] text-ink-subtle">/{totalTestCount} test</span>
               </CircularProgress>
               <p className="text-xs text-ink-muted">Testlarni o'zlashtirish darajasi</p>
-            </Card>
+            </section>
           )}
 
           {/* Next milestone — a quiet, non-numeric goal. */}
-          <Card accent="violet" className="p-5">
+          <section className="min-w-0">
             <CardTitle icon={Sparkles} tone="violet">
               Keyingi maqsad
             </CardTitle>
@@ -475,7 +473,7 @@ export function StudentDashboardPage() {
               <span className={`h-1.5 w-1.5 rounded-full ${TONE_DOT.violet}`} />
               Kunlik seriya: <span className="tabular font-semibold text-ink">{streak?.current_streak ?? 0}</span> kun
             </div>
-          </Card>
+          </section>
         </div>
       </div>
     </div>

@@ -36,17 +36,34 @@ api.interceptors.request.use((config) => {
 
 let refreshInFlight: Promise<string | null> | null = null;
 
+/** Bumped on logout so an in-flight token refresh started *before* the logout
+ * cannot write new tokens back into storage after they were cleared (that
+ * race resurrected a "logged out" session and silently signed the user in
+ * again). */
+let logoutGeneration = 0;
+
 async function refreshAccessToken(): Promise<string | null> {
   const refresh = tokenStorage.getRefresh();
   if (!refresh) return null;
+  const generation = logoutGeneration;
   try {
     const { data } = await axios.post("/api/auth/refresh/", { refresh });
-    tokenStorage.set(data.access, refresh);
+    if (generation !== logoutGeneration) return null;
+    tokenStorage.set(data.access, data.refresh ?? refresh);
     return data.access as string;
-  } catch {
-    tokenStorage.clear();
+  } catch (error) {
+    // Only a rejected token (401/400) means the session is over. A network
+    // blip or a 5xx must NOT clear the tokens — clearing them here is what
+    // turned a transient failure into a forced logout.
+    if (statusOf(error) === 401 || statusOf(error) === 400) {
+      tokenStorage.clear();
+    }
     return null;
   }
+}
+
+function statusOf(error: unknown): number | undefined {
+  return (error as { response?: { status?: number } })?.response?.status;
 }
 
 api.interceptors.response.use(
@@ -77,6 +94,13 @@ export async function login(email: string, password: string) {
   tokenStorage.set(data.access, data.refresh);
 }
 
-export function logout() {
+export async function logout() {
+  logoutGeneration += 1;
+  const refresh = tokenStorage.getRefresh();
   tokenStorage.clear();
+  // Best-effort revocation: the refresh token dies server-side so a stolen
+  // one cannot be replayed for its full 14-day lifetime.
+  if (refresh) {
+    axios.post("/api/auth/logout/", { refresh }).catch(() => {});
+  }
 }

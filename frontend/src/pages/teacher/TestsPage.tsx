@@ -128,7 +128,6 @@ function AddQuestionForm({
         order: nextOrder,
       });
       for (const option of options) {
-        // eslint-disable-next-line no-await-in-loop -- options must exist before the question is usable
         await api.post("/options/", { question: question.id, text: option.text, is_correct: option.is_correct });
       }
       setText("");
@@ -223,7 +222,7 @@ function TestManager({ test }: { test: TestSummary }) {
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <h3 className="section-title">
           Savollar ({questions?.length ?? 0}
           {test.max_questions != null && ` / ${test.max_questions}`})
         </h3>
@@ -261,7 +260,7 @@ function TestManager({ test }: { test: TestSummary }) {
 
       {showResults && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Natijalar</h3>
+          <h3 className="mb-2 section-title">Natijalar</h3>
           {!results && <LoadingState label="Yuklanmoqda..." />}
           {results && results.length === 0 && <EmptyState title="Hali hech kim topshirmagan" />}
           {results && results.length > 0 && (

@@ -188,7 +188,8 @@ export function NeonRacingGame({ session }: { session: GameSession }) {
   // "Play again" lands here with autoStart — straight to the grid.
   useEffect(() => {
     if (game.autoStart && game.phase === "start" && game.questionsQuery.isSuccess && countdown === null) {
-      beginCountdown();
+      const t = window.setTimeout(beginCountdown, 0);
+      return () => window.clearTimeout(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when questions are ready
   }, [game.autoStart, game.questionsQuery.isSuccess]);

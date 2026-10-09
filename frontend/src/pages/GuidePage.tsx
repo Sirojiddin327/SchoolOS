@@ -470,20 +470,20 @@ export function GuidePage() {
           ))}
         </div>
 
-        <div className="card p-6">
+        <div>
           <div className="mb-4 flex items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
               <active.icon size={19} />
             </span>
             <div>
-              <p className="text-lg font-bold text-slate-900 dark:text-slate-50">{active.title}</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{active.summary}</p>
+              <p className="text-lg font-bold text-ink">{active.title}</p>
+              <p className="text-sm text-ink-muted">{active.summary}</p>
             </div>
           </div>
           {active.points.length > 0 && (
             <ul className="space-y-2">
               {active.points.map((point) => (
-                <li key={point} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
+                <li key={point} className="flex items-start gap-2 text-sm text-ink">
                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" />
                   {point}
                 </li>

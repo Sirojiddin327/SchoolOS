@@ -60,10 +60,10 @@ export function SubjectsPage() {
       {data && data.results.length === 0 && <EmptyState title="Hali fan yo'q" />}
 
       {data && data.results.length > 0 && (
-        <ul className="divide-y divide-slate-100 card">
+        <ul className="divide-y divide-line-soft">
           {data.results.map((subject) => (
-            <li key={subject.id} className="flex items-center justify-between px-4 py-3">
-              <span className="text-slate-800 dark:text-slate-100">{subject.name}</span>
+            <li key={subject.id} className="flex items-center justify-between py-3">
+              <span className="text-ink">{subject.name}</span>
               <button
                 onClick={() => deleteSubject.mutate(subject.id)}
                 className="text-sm text-red-600 hover:underline dark:text-red-400"

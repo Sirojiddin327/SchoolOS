@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
 
-import { TONE_DOT, TONE_RING, TONE_TEXT, type Tone } from "../lib/tones";
+import { TONE_RING, TONE_TEXT, type Tone } from "../lib/tones";
 import { AvatarUploader } from "./AvatarUploader";
 import { Badge } from "./Badge";
 
 /**
  * The identity block every role's Profile page opens with.
  *
- * A wide accent edge plus an accent-tinted avatar ring give the profile a
- * recognisable "cover" without painting the whole panel — the stats strip
- * below sits on a raised well so the eye separates identity from numbers.
+ * Open on the canvas — a hairline underneath is the only thing separating it
+ * from the sections below, and the stats sit in a plain divided row instead
+ * of a nested grid of mini-cards.
  */
 export function ProfileHeaderCard({
   name,
@@ -28,9 +28,8 @@ export function ProfileHeaderCard({
   children?: ReactNode;
 }) {
   return (
-    <div className="card relative overflow-hidden">
-      <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${TONE_DOT[roleTone]}`} />
-      <div className="flex flex-col items-center gap-4 p-6 sm:flex-row sm:items-start">
+    <header className="border-b border-line-soft pb-6">
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
         <span className={`rounded-full ring-2 ${TONE_RING[roleTone]}`}>
           <AvatarUploader />
         </span>
@@ -45,12 +44,8 @@ export function ProfileHeaderCard({
 
       {children}
 
-      {stats && (
-        <div className="grid grid-cols-2 gap-px border-t border-line-soft bg-line-soft sm:grid-cols-3">
-          {stats}
-        </div>
-      )}
-    </div>
+      {stats && <div className="mt-6 grid grid-cols-3 gap-4">{stats}</div>}
+    </header>
   );
 }
 
@@ -65,9 +60,9 @@ export function ProfileStat({
   tone?: Tone;
 }) {
   return (
-    <div className="bg-surface px-4 py-3.5">
-      <p className={`tabular text-xl font-bold leading-none ${TONE_TEXT[tone]}`}>{value}</p>
-      <p className="mt-1.5 text-xs text-ink-subtle">{label}</p>
+    <div className="min-w-0">
+      <p className={`tabular truncate text-xl font-bold leading-none ${TONE_TEXT[tone]}`}>{value}</p>
+      <p className="mt-1.5 truncate text-xs text-ink-subtle">{label}</p>
     </div>
   );
 }

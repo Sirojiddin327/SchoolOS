@@ -5,23 +5,31 @@ round trip.
 
 from typing import ClassVar
 
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.authentication import get_authorization_header
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenViewBase
 
 from apps.organizations import services
 from apps.organizations.authentication import ORG_CLAIM
 from apps.organizations.models import OrganizationMembership
+from apps.users.models import User
 
 
 def _with_organization(token: RefreshToken, organization) -> RefreshToken:
     token[ORG_CLAIM] = organization.pk
     return token
+
+
+def _token_user(token: RefreshToken) -> User | None:
+    """SimpleJWT 5 removed `token.user`; the user has to be read back from the
+    publicly-verifiable `USER_ID_CLAIM`."""
+    return User.objects.filter(id=token[api_settings.USER_ID_CLAIM]).first()
 
 
 def _resolve_for_login(user, requested_organization_id):
@@ -58,13 +66,15 @@ class OrganizationTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]
+        # SimpleJWT keeps the authenticated user on `.user` — `validated_data`
+        # only carries the minted `refresh`/`access` tokens.
+        user = serializer.user
 
         membership = _resolve_for_login(user, request.data.get("organization"))
 
-        refresh = self.get_refresh_token()
+        refresh = RefreshToken.for_user(user)
         _with_organization(refresh, membership.organization)
-        access = self.get_access_token()
+        access = refresh.access_token
         _with_organization(access, membership.organization)
 
         data = {
@@ -84,9 +94,18 @@ class OrganizationTokenObtainPairView(TokenObtainPairView):
 class OrganizationTokenRefreshView(TokenViewBase):
     """`/api/auth/refresh/` — carries the old token's `org_id` into the new one,
     unless the request asks for a different organization, in which case that
-    one is validated as a real membership first."""
+    one is validated as a real membership first.
 
-    permission_classes: ClassVar[list[type[BasePermission]]] = [IsAuthenticated]
+    Deliberately unauthenticated: the refresh token *in the body* is the
+    credential here, and the client sends it without an Authorization header
+    (the access token it would carry is exactly what has just expired). Requiring
+    `IsAuthenticated` made every refresh answer 401 and logged the user out as
+    soon as their access token lapsed. The token itself is still fully validated
+    below, and membership is re-checked against the database before anything is
+    minted.
+    """
+
+    permission_classes: ClassVar[list[type[BasePermission]]] = []
 
     @staticmethod
     def _extract_refresh_token(request):
@@ -109,7 +128,9 @@ class OrganizationTokenRefreshView(TokenViewBase):
         except TokenError as e:
             return Response({"detail": str(e)}, status=401)
 
-        user = token.user
+        user = _token_user(token)
+        if user is None:
+            return Response({"detail": "Foydalanuvchi topilmadi."}, status=401)
         requested = request.data.get("organization")
         if requested in (None, ""):
             membership = services.resolve_membership(user, token.get(ORG_CLAIM))
@@ -130,6 +151,30 @@ class OrganizationTokenRefreshView(TokenViewBase):
                 "role": membership.role,
             }
         )
+
+
+class LogoutView(APIView):
+    """`/api/auth/logout/` — revokes the presented refresh token server-side.
+
+    Without this, "logging out" only dropped the tokens from the browser and a
+    stolen refresh token stayed valid for its whole 14-day lifetime. Anonymous
+    by design: the user is trying to stop *using* their tokens, so demanding a
+    still-valid access token to do it would lock them out of logging out.
+    """
+
+    permission_classes: ClassVar[list[type[BasePermission]]] = []
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return Response({"detail": "Refresh token topilmadi."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            RefreshToken(str(refresh_token)).blacklist()
+        except TokenError:
+            # An already-invalid token needs no revocation; the important thing
+            # is that the client stops trusting whichever one it had.
+            pass
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MyMembershipsView(APIView):

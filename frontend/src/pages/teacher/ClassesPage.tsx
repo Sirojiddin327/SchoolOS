@@ -6,11 +6,12 @@ import { Badge } from "../../components/Badge";
 import { PageHeader } from "../../components/PageHeader";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
 import { api } from "../../lib/api";
+import { todayISODate } from "../../lib/schoolTime";
 import { TONE_TEXT, type Tone } from "../../lib/tones";
 import type { ClassAttendanceSummary, Paginated, RosterStudent, SchoolClass } from "../../types";
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return todayISODate();
 }
 
 function NameList({ title, tone, students }: { title: string; tone: Tone; students: RosterStudent[] }) {
@@ -167,7 +168,7 @@ export function TeacherClassesPage() {
       {otherClasses.length > 0 && (
         <div className="space-y-3">
           {homeroomClasses.length > 0 && (
-            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Dars beradigan sinflarim</h2>
+            <h2 className="section-title">Dars beradigan sinflarim</h2>
           )}
           {otherClasses.map((cls) => (
             <div key={cls.id} className="card">

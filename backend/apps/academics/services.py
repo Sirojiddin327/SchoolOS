@@ -35,20 +35,31 @@ def week_monday(day: date) -> date:
     return day - timedelta(days=day.weekday())
 
 
-def generate_lessons_for_week(week_start: date) -> list[Lesson]:
+def generate_lessons_for_week(week_start: date, organization=None) -> list[Lesson]:
     """Create (or reuse) concrete Lesson rows for every TimetableSlot in the week of `week_start`.
 
     Idempotent: re-running for the same week never creates duplicates, since lessons
     are keyed on (school_class, date, start_time) — the same key Lesson already enforces
     uniqueness on.
+
+    `organization` is the tenant the director is working in. Slots are scoped to
+    it so one director's "generate week" cannot fabricate lessons for *every*
+    school on the platform as a side effect. With `organization=None` (tests,
+    or a caller that has already narrowed the rows) every slot is used.
     """
     monday = week_monday(week_start)
     lessons = []
-    # Slots are not scoped to one tenant, so bell times come from each slot's
-    # own organization rather than from a single global settings row.
+    slots = (
+        TimetableSlot.objects.select_related("subject", "school_class", "teacher", "secondary_teacher")
+        .all()
+    )
+    if organization is not None:
+        slots = slots.filter(organization=organization)
+    # Slots may span several tenants in the unscoped case, so bell times come from
+    # each slot's own organization rather than from a single global settings row.
     settings_by_org = {}
 
-    for slot in TimetableSlot.objects.select_related("subject", "school_class", "teacher"):
+    for slot in slots:
         if slot.organization_id not in settings_by_org:
             settings_by_org[slot.organization_id] = SchoolTimeSettings.get_solo(slot.organization)
         lesson_date = monday + timedelta(days=slot.day_of_week - 1)
@@ -60,10 +71,22 @@ def generate_lessons_for_week(week_start: date) -> list[Lesson]:
             defaults={
                 "subject": slot.subject,
                 "teacher": slot.teacher,
+                "secondary_teacher": slot.secondary_teacher,
                 "end_time": end_time,
                 "room": slot.room,
             },
         )
+        # An existing row still carries whatever teacher used to own this
+        # period; if the director has since re-assigned the lesson (or its
+        # secondary teacher) in the template, re-running the week must pick
+        # that up instead of silently keeping the stale assignment.
+        if lesson.teacher_id != slot.teacher_id or lesson.secondary_teacher_id != slot.secondary_teacher_id:
+            lesson.teacher = slot.teacher
+            lesson.secondary_teacher = slot.secondary_teacher
+            lesson.subject = slot.subject
+            lesson.end_time = end_time
+            lesson.room = slot.room
+            lesson.save(update_fields=["teacher", "secondary_teacher", "subject", "end_time", "room"])
         lessons.append(lesson)
 
     return lessons
@@ -88,7 +111,9 @@ def lessons_for_user(user, day: date) -> QuerySet[Lesson]:
 
     if user.is_teacher:
         return in_organization(user, Lesson.objects.filter(date=day)).filter(
-            Q(teacher=user.teacher_profile) | Q(school_class__class_teacher=user.teacher_profile)
+            Q(teacher=user.teacher_profile)
+            | Q(secondary_teacher=user.teacher_profile)
+            | Q(school_class__class_teacher=user.teacher_profile)
         ).distinct()
 
     return Lesson.objects.none()

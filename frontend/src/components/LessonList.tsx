@@ -23,11 +23,11 @@ export function LessonList({ lessons }: { lessons: LessonSummary[] }) {
   }
 
   return (
-    <ol className="card divide-y divide-line-soft overflow-hidden">
+    <ol className="divide-y divide-line-soft">
       {lessons.map((lesson) => {
         const marked: Tone = lesson.attendance_marked ? "emerald" : "amber";
         return (
-          <li key={lesson.id} className="flex items-center gap-4 px-4 py-3.5 sm:px-5">
+          <li key={lesson.id} className="flex items-center gap-4 py-3.5">
             <div className="w-12 shrink-0 text-right">
               <p className="tabular text-sm font-semibold text-ink">
                 {lesson.start_time.slice(0, 5)}

@@ -162,6 +162,7 @@ export interface ClassAttendanceSummary {
   excused: number;
   absent_students: AttendanceRosterStudent[];
   late_students: AttendanceRosterStudent[];
+  present_students: AttendanceRosterStudent[];
 }
 
 export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
@@ -478,40 +479,102 @@ export interface TeacherTaskAssignment {
 
 // ---------- Duels ----------
 
-export type DuelStatus = "ACTIVE" | "COMPLETED";
+export type DuelStatus = "PENDING" | "ACTIVE" | "COMPLETED" | "DECLINED" | "CANCELLED" | "EXPIRED";
 export type DuelResult = "CHALLENGER" | "OPPONENT" | "DRAW" | null;
 export type DuelRole = "challenger" | "opponent" | null;
+export type DuelMode = "AI" | "CLASSMATE";
+export type DuelOutcome = "WIN" | "LOSS" | "DRAW" | null;
 
-/** Always framed from "my" side — `my_role`/`my_score_percent` etc. are
- * relative to whoever is asking, never the raw challenger/opponent fields. */
+/** Always framed from "my" side — `my_role`/`outcome` are relative to whoever
+ * is asking, never the raw challenger/opponent fields (matches the backend
+ * `DuelSerializer`). */
+export interface DuelPlayerInfo {
+  id: number | null;
+  name: string;
+  archetype: string;
+  avatar_url: string | null;
+  is_ai: boolean;
+}
+
+export interface DuelSideState {
+  answered: number;
+  correct: number;
+  quick: number;
+  combo: number;
+  max_combo: number;
+  hp: number;
+  shield: boolean;
+  power: boolean;
+  abilities: string[];
+  last: { index: number; correct: boolean; timed_out: boolean } | null;
+}
+
+export interface DuelBattle {
+  me: DuelSideState;
+  opponent: Omit<DuelSideState, "last">;
+  hp_max: number;
+}
+
 export interface DuelListItem {
   id: number;
-  challenger: number;
-  challenger_name: string;
-  opponent: number;
-  opponent_name: string;
+  mode: DuelMode;
+  ai_level: string;
   status: DuelStatus;
-  result: DuelResult;
+  subject: number;
+  subject_name: string;
+  difficulty: string;
+  difficulty_display: string;
+  question_count: number;
+  seconds_per_question: number;
   my_role: DuelRole;
-  my_score_percent: number | null;
-  opponent_score_percent: number | null;
-  i_won: boolean | null;
-  i_have_submitted: boolean;
-  opponent_has_submitted: boolean;
+  me: DuelPlayerInfo;
+  opponent_player: DuelPlayerInfo;
+  awaiting_my_response: boolean;
+  i_am_ready: boolean;
+  opponent_ready: boolean;
+  match_starts_at: string | null;
+  server_now: string;
+  battle: DuelBattle | null;
+  outcome: DuelOutcome;
+  my_xp: number | null;
   created_at: string;
   completed_at: string | null;
 }
 
 export interface DuelQuestionItem {
-  id: number;
-  order: number;
+  done: boolean;
+  index: number;
   text: string;
-  options: TestOption[];
+  options: string[];
+  seconds: number;
+  opened_at_ms: number;
+  server_now_ms: number;
+}
+
+export interface DuelAnswerResult {
+  correct: boolean;
+  timed_out: boolean;
+  correct_index: number;
+  explanation: string;
+  event?: { index: number; correct: boolean; timed_out: boolean } | null;
+}
+
+export interface DuelStatsInfo {
+  wins: number;
+  losses: number;
+  draws: number;
+  played: number;
+  current_streak: number;
+  best_streak: number;
+  xp: number;
+  rating: number;
+  archetype: string;
 }
 
 export interface DuelRatingInfo {
   rating: number;
   tier: string;
+  archetype: string;
   wins: number;
   losses: number;
   draws: number;

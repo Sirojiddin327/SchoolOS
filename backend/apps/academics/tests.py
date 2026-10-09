@@ -84,12 +84,14 @@ class GenerateLessonsForWeekTests(TestCase):
 
         self.subject = make_subject()
         _, self.teacher = make_teacher()
+        _, self.secondary_teacher = make_teacher()
         self.school_class = make_school_class()
         # Wednesday (day_of_week=3), period 1.
         self.slot = make_timetable_slot(
             school_class=self.school_class,
             subject=self.subject,
             teacher=self.teacher,
+            secondary_teacher=self.secondary_teacher,
             day_of_week=3,
             period_number=1,
         )
@@ -103,6 +105,19 @@ class GenerateLessonsForWeekTests(TestCase):
         self.assertEqual(lesson.date, monday + timedelta(days=2))
         self.assertEqual(lesson.start_time, time(8, 0))
         self.assertEqual(lesson.end_time, time(8, 45))
+
+    def test_secondary_teacher_is_carried_onto_the_lesson(self):
+        lesson = generate_lessons_for_week(_this_weeks_monday())[0]
+        self.assertEqual(lesson.secondary_teacher, self.secondary_teacher)
+
+    def test_reassigning_the_slot_secondary_teacher_syncs_the_lesson(self):
+        generate_lessons_for_week(_this_weeks_monday())
+        _, replacement = make_teacher()
+        self.slot.secondary_teacher = replacement
+        self.slot.save()
+
+        lesson = generate_lessons_for_week(_this_weeks_monday())[0]
+        self.assertEqual(lesson.secondary_teacher, replacement)
 
     def test_running_twice_for_the_same_week_is_idempotent(self):
         monday = _this_weeks_monday()
@@ -148,6 +163,7 @@ class LessonQuerysetScopingAPITests(APITestCase):
             school_class=self.class_b,
             subject=subject,
             teacher=self.teacher_b,
+            secondary_teacher=self.teacher_a,
             start_time=time(10, 0),
             end_time=time(10, 45),
         )
@@ -161,7 +177,15 @@ class LessonQuerysetScopingAPITests(APITestCase):
         self.client.force_authenticate(self.teacher_a_user)
         response = self.client.get("/api/lessons/")
         ids = {row["id"] for row in response.data["results"]}
-        self.assertEqual(ids, {self.lesson_a.id})
+        # `teacher_a` teaches their own class and is the *secondary* teacher of
+        # the other lesson — both must show up in their schedule.
+        self.assertEqual(ids, {self.lesson_a.id, self.lesson_b.id})
+
+    def test_secondary_teacher_is_exposed_and_validated(self):
+        self.client.force_authenticate(self.teacher_a_user)
+        response = self.client.get(f"/api/lessons/{self.lesson_b.id}/")
+        self.assertEqual(response.data["secondary_teacher"], self.teacher_a.id)
+        self.assertEqual(response.data["secondary_teacher_name"], str(self.teacher_a))
 
     def test_student_sees_only_their_class_lessons(self):
         self.client.force_authenticate(self.student_user)
@@ -331,6 +355,23 @@ class DailyScheduleRecipientsTests(TestCase):
         lesson_ids = {lesson.id for lesson in lessons_for_user(self.teacher_user, self.DAY)}
 
         self.assertNotIn(other_lesson.id, lesson_ids)
+
+    def test_secondary_teacher_receives_the_lesson_in_their_schedule(self):
+        secondary_user, secondary_teacher = make_teacher()
+        self._link(secondary_user, 5002)
+        _, primary_teacher = make_teacher()
+        other_class = make_school_class()
+        make_lesson(
+            school_class=other_class,
+            subject=self.subject,
+            teacher=primary_teacher,
+            secondary_teacher=secondary_teacher,
+            lesson_date=self.DAY,
+        )
+
+        lesson_ids = {lesson.id for lesson in lessons_for_user(secondary_user, self.DAY)}
+
+        self.assertEqual(len(lesson_ids), 1)
 
     def test_student_without_a_class_has_no_schedule(self):
         orphan_user, _ = make_student(None)

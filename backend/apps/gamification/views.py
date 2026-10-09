@@ -191,15 +191,20 @@ class MyRankView(APIView):
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsStudent]
 
     def get(self, request):
-        student = request.user.student_profile
-        rank = StudentProfile.objects.filter(total_xp__gt=student.total_xp).count() + 1
-        total_students = StudentProfile.objects.count()
+        user = request.user
+        student = user.student_profile
+        students = students_in_organization(user, StudentProfile.objects.all())
+        rank = students.filter(total_xp__gt=student.total_xp).count() + 1
+        total_students = students.count()
 
         class_rank = None
-        total_classes = SchoolClass.objects.count()
+        total_classes = in_organization(user, SchoolClass.objects).count()
         if student.school_class_id:
             class_rank = (
-                SchoolClass.objects.filter(total_xp__gt=student.school_class.total_xp).count() + 1
+                in_organization(user, SchoolClass.objects)
+                .filter(total_xp__gt=student.school_class.total_xp)
+                .count()
+                + 1
             )
 
         return Response(

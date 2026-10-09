@@ -32,6 +32,8 @@ from .management.commands.runbot import (
     my_xp_text,
     parent_attendance_text,
     parent_progress_text,
+    prime_role_cache,
+    today_lessons_text,
 )
 from .models import ParentLinkCode, ParentTelegramAccount, TelegramAccount, TelegramLinkCode
 from .services import generate_link_code, generate_parent_link_code, notify_parents
@@ -397,3 +399,28 @@ class AsyncRoleCacheTests(TestCase):
             return menu_for(await get_linked_user(1003))
 
         self.assertEqual(async_to_sync(scenario)(), TEACHER_MENU)
+
+
+class SecondaryTeacherBotScheduleTests(TestCase):
+    """A teacher who only co-teaches a lesson must still see it under
+    "Bugungi darslar" — the bot used to filter by `lesson__teacher` only."""
+
+    def test_secondary_teacher_sees_the_lesson_in_today_lessons(self):
+        primary_user, primary = make_teacher()
+        secondary_user, secondary = make_teacher()
+        school_class = make_school_class()
+        subject = make_subject(name="Fizika")
+        make_lesson(
+            school_class=school_class,
+            subject=subject,
+            teacher=primary,
+            secondary_teacher=secondary,
+            lesson_date=timezone.localdate(),
+        )
+
+        async def text(user):
+            await prime_role_cache(user)
+            return await today_lessons_text(user)
+
+        self.assertIn("Fizika", async_to_sync(text)(primary_user))
+        self.assertIn("Fizika", async_to_sync(text)(secondary_user))

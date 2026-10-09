@@ -174,7 +174,10 @@ export function TreasureMap({
   const posRef = useRef<Point>(points[target]);
   const zoomRef = useRef(zoom);
   const onArriveRef = useRef(onArrive);
-  onArriveRef.current = onArrive;
+
+  useEffect(() => {
+    onArriveRef.current = onArrive;
+  });
 
   // A layout switch (rotating a tablet) — snap to the same stop on the new route.
   useEffect(() => {

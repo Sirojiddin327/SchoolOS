@@ -151,7 +151,8 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         self._require_director_of(organization)
 
         serializer = MembershipCreateSerializer(
-            data={**request.data, "organization": organization.pk}
+            data={**request.data, "organization": organization.pk},
+            context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()

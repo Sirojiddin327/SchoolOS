@@ -61,7 +61,7 @@ class GameSessionViewSet(
         show a real empty state ("no questions for this subject yet") *before*
         a session is started rather than only when its questions are requested.
         """
-        return Response(question_service.subject_availability())
+        return Response(question_service.subject_availability(request.user.active_organization))
 
     @action(detail=True, methods=["get"])
     def questions(self, request, pk=None):

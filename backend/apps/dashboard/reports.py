@@ -21,7 +21,7 @@ from django.utils import timezone
 
 from apps.attendance.models import Attendance
 from apps.common.gemini import call_gemini
-from apps.common.tenancy import in_organization
+from apps.common.tenancy import in_organization, students_in_organization
 from apps.games.models import GameSession
 from apps.gamification.models import XPTransaction
 from apps.learning.models import TestAttempt
@@ -66,8 +66,13 @@ def classes_visible_to(user):
     return queryset.none()
 
 
-def build_school_report(*, days: int = DEFAULT_PERIOD) -> dict:
-    """Whole-school student progress report (director only)."""
+def build_school_report(*, user, days: int = DEFAULT_PERIOD) -> dict:
+    """Whole-school student progress report (director only).
+
+    Scoped to the caller's organization: the report walks every student's test,
+    game, attendance and XP rows, so an unscoped run would hand one school's
+    director another school's results.
+    """
     now = timezone.now()
     since_date = timezone.localdate() - timedelta(days=days - 1)
     since = timezone.make_aware(datetime.combine(since_date, time.min))
@@ -76,7 +81,10 @@ def build_school_report(*, days: int = DEFAULT_PERIOD) -> dict:
     from apps.users.models import StudentProfile
 
     students = list(
-        StudentProfile.objects.select_related("user", "school_class")
+        students_in_organization(
+            user,
+            StudentProfile.objects.select_related("user", "school_class"),
+        )
         .order_by("school_class__name", "user__first_name", "user__last_name")
     )
     student_ids = [s.id for s in students]
@@ -209,7 +217,7 @@ def build_school_report(*, days: int = DEFAULT_PERIOD) -> dict:
     }
 
 
-def ai_school_summary(report: dict, *, refresh: bool = False) -> str | None:
+def ai_school_summary(report: dict, *, user, refresh: bool = False) -> str | None:
     """AI summary for the whole-school report (director only)."""
     students = report["students"]
     names = {f"S{i}": row["full_name"] for i, row in enumerate(students, start=1)}
@@ -240,7 +248,11 @@ def ai_school_summary(report: dict, *, refresh: bool = False) -> str | None:
         ]
     )
 
-    cache_key = "school-report-ai:" + hashlib.sha1(data.encode()).hexdigest()
+    # The organization is part of the key because two schools with an empty
+    # report produce byte-identical `data` — and must not share a cached reply.
+    cache_key = "school-report-ai:" + hashlib.sha1(
+        f"{user.active_organization_id}:{data}".encode()
+    ).hexdigest()
     if not refresh:
         cached = cache.get(cache_key)
         if cached:

@@ -47,6 +47,14 @@ class Lesson(OrganizationScopedMixin, TimeStampedModel):
         related_name="lessons",
         on_delete=models.PROTECT,
     )
+    secondary_teacher = models.ForeignKey(
+        "users.TeacherProfile",
+        verbose_name=_("secondary teacher"),
+        related_name="secondary_lessons",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
     date = models.DateField(_("date"))
     start_time = models.TimeField(_("start time"))
     end_time = models.TimeField(_("end time"))

@@ -23,6 +23,19 @@ export function todayLabel(): string {
   return `${WEEKDAY_NAMES_UZ[now.getDay()]}, ${now.getDate()}-${MONTH_NAMES_UZ[now.getMonth()]}`;
 }
 
+/** `YYYY-MM-DD` in the local timezone. `toISOString()` returns the *UTC* date,
+ * which in UTC+5 (Asia/Tashkent) is yesterday between 00:00–05:00. */
+export function localISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function todayISODate(): string {
+  return localISODate(new Date());
+}
+
 /** Monday(1)–Saturday(6) — matches the backend's `TimetableSlot.DayOfWeek`
  * choices exactly (the school week has no Sunday slot). Used for the weekly
  * schedule's day-selector tabs. */

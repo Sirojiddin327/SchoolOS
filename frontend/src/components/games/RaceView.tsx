@@ -73,7 +73,10 @@ export function RaceView({
   const rightRefs = useRef<(SVGRectElement | null)[]>([]);
   const stripeRefs = useRef<(SVGRectElement | null)[]>([]);
   const targetSpeed = useRef(SPEED[drive]);
-  targetSpeed.current = SPEED[drive];
+
+  useEffect(() => {
+    targetSpeed.current = SPEED[drive];
+  }, [drive]);
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

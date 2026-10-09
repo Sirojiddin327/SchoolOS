@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.permissions import IsDirector, IsDirectorOrReadOnly, IsStudent
-from apps.common.tenancy import students_in_organization
+from apps.common.tenancy import organization_of, students_in_organization
 
 from . import services
 from .models import StudentProfile, TeacherProfile
@@ -30,7 +30,12 @@ User = get_user_model()
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    """Director-only endpoint listing every account in the system."""
+    """Director-only list of the accounts *in their organization*.
+
+    `User` is a global identity (one person can belong to a school and a club),
+    so the tenant boundary here is the membership row: without that filter every
+    director could enumerate every account on the platform.
+    """
 
     serializer_class = UserSerializer
     queryset = User.objects.all()
@@ -38,6 +43,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ("role", "is_active", "is_staff")
     search_fields = ("email", "username", "first_name", "last_name")
     ordering_fields = ("email", "username", "date_joined")
+
+    def get_queryset(self):
+        organization = organization_of(self.request.user)
+        if organization is None:
+            return User.objects.none()
+        return User.objects.filter(
+            organization_memberships__organization=organization
+        ).distinct()
 
 
 class MeView(RetrieveAPIView):
@@ -51,13 +64,29 @@ class MeView(RetrieveAPIView):
 
 
 class TeacherViewSet(viewsets.ModelViewSet):
-    """Director: full CRUD (account + profile in one call). Everyone else: read-only list."""
+    """Director: full CRUD (account + profile in one call). Everyone else: read-only list.
+
+    Scoped by the teacher account's membership: `TeacherProfile` carries no
+    organization column, so an unscoped queryset would hand every member —
+    students included — the emails and phone numbers of teachers at every
+    other school.
+    """
 
     serializer_class = TeacherSerializer
     permission_classes: ClassVar[list[type[BasePermission]]] = [IsDirectorOrReadOnly]
     http_method_names: ClassVar[list[str]] = ["get", "post", "patch", "put", "head", "options"]
     queryset = TeacherProfile.objects.select_related("user").order_by("user__first_name")
     search_fields = ("user__email", "user__first_name", "user__last_name")
+
+    def get_queryset(self):
+        organization = organization_of(self.request.user)
+        if organization is None:
+            return TeacherProfile.objects.none()
+        return (
+            TeacherProfile.objects.select_related("user")
+            .filter(user__organization_memberships__organization=organization)
+            .order_by("user__first_name")
+        )
 
 
 class StudentViewSet(viewsets.ModelViewSet):
@@ -101,7 +130,7 @@ class BulkImportStudentsView(APIView):
         if file_obj is None:
             raise ValidationError({"file": "This field is required."})
 
-        result = services.bulk_import_students(file_obj)
+        result = services.bulk_import_students(file_obj, organization=organization_of(request.user))
 
         return Response(
             {

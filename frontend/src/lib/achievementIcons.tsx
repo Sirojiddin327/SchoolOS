@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import {
   Award,
   BookOpen,
@@ -72,5 +73,5 @@ export function getAchievementIcon(icon: string | undefined): LucideIcon {
 
 export function AchievementIcon({ icon, className }: { icon?: string; className?: string }) {
   const Icon = getAchievementIcon(icon);
-  return <Icon className={className} />;
+  return createElement(Icon, { className });
 }

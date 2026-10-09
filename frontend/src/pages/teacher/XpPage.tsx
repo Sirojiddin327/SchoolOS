@@ -40,7 +40,7 @@ export function TeacherXpPage() {
       )}
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">So'nggi XP harakatlari</h2>
+        <h2 className="mb-3 section-title">So'nggi XP harakatlari</h2>
         {history && history.results.length === 0 && <EmptyState title="Hali XP tarixi yo'q" />}
         {history && history.results.length > 0 && (
           <Table>

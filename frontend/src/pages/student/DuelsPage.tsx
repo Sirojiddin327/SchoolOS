@@ -10,7 +10,7 @@ import { Modal } from "../../components/Modal";
 import { PageHeader } from "../../components/PageHeader";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
 import { api } from "../../lib/api";
-import type { DuelListItem, DuelRatingInfo, Paginated, RosterStudent } from "../../types";
+import type { DuelListItem, DuelRatingInfo, DuelStatsInfo, Paginated, RosterStudent } from "../../types";
 
 const MEDAL_TONE: Record<number, string> = {
   0: "text-amber-500",
@@ -18,16 +18,28 @@ const MEDAL_TONE: Record<number, string> = {
   2: "text-orange-600",
 };
 
+const ARCHETYPE_LABELS: Record<string, string> = {
+  wizard: "Sehrgar",
+  knight: "Ritsar",
+  rogue: "O'g'ri",
+  ranger: "Qirg'ovul",
+  "ai-novice": "AI Novice",
+  "ai-scholar": "AI Scholar",
+  "ai-master": "AI Master",
+};
+
 function DuelStatusBadge({ duel }: { duel: DuelListItem }) {
-  if (duel.status === "ACTIVE") {
-    return duel.i_have_submitted ? (
-      <Badge tone="amber">Raqib javobini kutmoqda</Badge>
-    ) : (
-      <Badge tone="brand">Javob bering</Badge>
-    );
-  }
-  if (duel.result === "DRAW") return <Badge tone="slate">Durang</Badge>;
-  return duel.i_won ? <Badge tone="emerald">G'alaba</Badge> : <Badge tone="rose">Mag'lubiyat</Badge>;
+  if (duel.status === "PENDING" && duel.awaiting_my_response) return <Badge tone="amber">Taklif keldi</Badge>;
+  if (duel.status === "PENDING") return <Badge tone="slate">Kutilmoqda</Badge>;
+  if (duel.status === "ACTIVE") return <Badge tone="brand">Javob bering</Badge>;
+  if (duel.status === "DECLINED" || duel.status === "CANCELLED" || duel.status === "EXPIRED")
+    return <Badge tone="slate">Yopilgan</Badge>;
+  if (duel.outcome === "DRAW") return <Badge tone="slate">Durang</Badge>;
+  return duel.outcome === "WIN" ? (
+    <Badge tone="emerald">G'alaba</Badge>
+  ) : (
+    <Badge tone="rose">Mag'lubiyat</Badge>
+  );
 }
 
 function CreateDuelModal({ onClose }: { onClose: () => void }) {
@@ -90,9 +102,9 @@ function CreateDuelModal({ onClose }: { onClose: () => void }) {
 export function StudentDuelsPage() {
   const [isModalOpen, setModalOpen] = useState(false);
 
-  const { data: rating } = useQuery({
-    queryKey: ["duels", "me"],
-    queryFn: async () => (await api.get<DuelRatingInfo>("/duels/me/")).data,
+  const { data: stats } = useQuery({
+    queryKey: ["duels", "stats"],
+    queryFn: async () => (await api.get<DuelStatsInfo>("/duels/stats/")).data,
   });
 
   const { data: leaderboard } = useQuery({
@@ -113,42 +125,46 @@ export function StudentDuelsPage() {
         action={<PrimaryButton onClick={() => setModalOpen(true)}>+ Yangi duel</PrimaryButton>}
       />
 
-      {rating && (
-        <div className="card p-5">
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
-              <Shield size={20} />
-            </span>
-            <div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">
-                {rating.rating} <span className="text-sm font-medium text-slate-400 dark:text-slate-500">{rating.tier}</span>
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {rating.wins} g'alaba · {rating.losses} mag'lubiyat · {rating.draws} durang · {rating.win_rate}% g'alaba
-              </p>
-            </div>
+      {stats && (
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+            <Shield size={20} />
+          </span>
+          <div>
+            <p className="text-2xl font-bold text-ink">
+              {stats.rating}{" "}
+              <span className="text-sm font-medium text-ink-subtle">
+                {ARCHETYPE_LABELS[stats.archetype] ?? stats.archetype}
+              </span>
+            </p>
+            <p className="text-sm text-ink-muted">
+              {stats.wins} g'alaba · {stats.losses} mag'lubiyat · {stats.draws} durang · {stats.xp} XP ·{" "}
+              {stats.best_streak} eng yaxshi seriya
+            </p>
           </div>
         </div>
       )}
 
       <div>
-        <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <h2 className="mb-3 flex items-center gap-1.5 section-title">
           <Trophy size={15} /> Duel chempionlari
         </h2>
         {!leaderboard && <LoadingState label="Yuklanmoqda..." />}
         {leaderboard && leaderboard.length === 0 && <EmptyState title="Reyting hali bo'sh" />}
         {leaderboard && leaderboard.length > 0 && (
-          <div className="divide-y divide-slate-100 card">
+          <div className="divide-y divide-line-soft">
             {leaderboard.slice(0, 10).map((entry, index) => (
-              <div key={entry.student_name} className="flex items-center justify-between gap-3 px-4 py-3">
+              <div key={entry.student_name} className="flex items-center justify-between gap-3 py-3">
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex w-6 justify-center font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="inline-flex w-6 justify-center font-semibold text-ink-muted">
                     {MEDAL_TONE[index] ? <Medal className={`h-4 w-4 ${MEDAL_TONE[index]}`} /> : index + 1}
                   </span>
                   <Avatar name={entry.student_name ?? "?"} size={32} />
                   <div>
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{entry.student_name}</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">{entry.tier}</p>
+                    <p className="text-sm font-medium text-ink">{entry.student_name}</p>
+                    <p className="text-xs text-ink-subtle">
+                  {ARCHETYPE_LABELS[entry.archetype] ?? entry.archetype}
+                </p>
                   </div>
                 </div>
                 <p className="font-semibold text-brand-700 dark:text-brand-300">{entry.rating}</p>
@@ -159,7 +175,7 @@ export function StudentDuelsPage() {
       </div>
 
       <div>
-        <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <h2 className="mb-3 flex items-center gap-1.5 section-title">
           <Swords size={15} /> Mening duellarim
         </h2>
         {isLoading && <LoadingState />}
@@ -170,8 +186,8 @@ export function StudentDuelsPage() {
         {duels && duels.results.length > 0 && (
           <div className="space-y-2">
             {duels.results.map((duel) => {
-              const opponentName = duel.my_role === "challenger" ? duel.opponent_name : duel.challenger_name;
-              const needsAction = duel.status === "ACTIVE" && !duel.i_have_submitted;
+              const opponentName = duel.opponent_player?.name ?? "Raqib";
+              const needsAction = duel.status === "ACTIVE" || (duel.status === "PENDING" && duel.awaiting_my_response);
               const content = (
                 <div
                   className={`flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-4 py-3 dark:border-slate-800 ${
@@ -185,9 +201,8 @@ export function StudentDuelsPage() {
                       <p className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
                         <Clock size={11} />
                         {new Date(duel.created_at).toLocaleDateString("uz-UZ")}
-                        {duel.status === "COMPLETED" &&
-                          duel.my_score_percent !== null &&
-                          ` · ${duel.my_score_percent.toFixed(0)}% vs ${duel.opponent_score_percent?.toFixed(0)}%`}
+                        {duel.subject_name ? ` · ${duel.subject_name}` : ""}
+                        {duel.status === "COMPLETED" && duel.my_xp != null && ` · +${duel.my_xp} XP`}
                       </p>
                     </div>
                   </div>

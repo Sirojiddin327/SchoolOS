@@ -6,6 +6,7 @@ import { Modal } from "../../components/Modal";
 import { PageHeader } from "../../components/PageHeader";
 import { EmptyState, ErrorState, LoadingState } from "../../components/states";
 import { api } from "../../lib/api";
+import { localISODate } from "../../lib/schoolTime";
 import type { Paginated, SchoolClass, Subject, Teacher, TimetableSlot } from "../../types";
 
 const DAYS = [
@@ -24,7 +25,7 @@ function mondayOfCurrentWeekIso(): string {
   const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
-  return d.toISOString().slice(0, 10);
+  return localISODate(d);
 }
 
 interface SlotFormState {

@@ -1,6 +1,7 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
 import { AXIS_PROPS, useChartTheme } from "../../lib/chartTheme";
+import { localISODate } from "../../lib/schoolTime";
 import type { XPTransaction } from "../../types";
 
 const DAYS_TO_SHOW = 7;
@@ -19,7 +20,7 @@ function buildDailySeries(transactions: XPTransaction[]): DayPoint[] {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     days.push({
-      date: d.toISOString().slice(0, 10),
+      date: localISODate(d),
       label: d.toLocaleDateString("uz-UZ", { weekday: "short" }),
       xp: 0,
     });

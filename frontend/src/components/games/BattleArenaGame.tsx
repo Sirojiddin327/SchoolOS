@@ -151,13 +151,18 @@ export function BattleArenaGame({ session }: { session: GameSession }) {
   useEffect(() => {
     if (!finalSession || resultShown) return;
     const battle = finalSession.battle;
-    setPoses({
-      player: victory ? "victory" : battle && battle.player_hp <= 0 ? "defeat" : "idle",
-      enemy: victory ? "defeat" : "idle",
-      key: Date.now(),
-    });
+    const poseTimer = window.setTimeout(() => {
+      setPoses({
+        player: victory ? "victory" : battle && battle.player_hp <= 0 ? "defeat" : "idle",
+        enemy: victory ? "defeat" : "idle",
+        key: Date.now(),
+      });
+    }, 0);
     const t = window.setTimeout(() => setResultShown(true), FINALE_MS);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(poseTimer);
+      window.clearTimeout(t);
+    };
   }, [finalSession, resultShown, victory]);
 
   if (game.phase === "start") {

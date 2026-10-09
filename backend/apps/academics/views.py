@@ -49,6 +49,7 @@ class LessonViewSet(viewsets.ModelViewSet):
         if user.is_teacher:
             return queryset.filter(
                 Q(teacher=user.teacher_profile)
+                | Q(secondary_teacher=user.teacher_profile)
                 | Q(school_class__class_teacher=user.teacher_profile)
             ).distinct()
         if user.is_student:
@@ -97,5 +98,7 @@ class GenerateLessonsView(APIView):
     def post(self, request):
         serializer = GenerateLessonsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        lessons = services.generate_lessons_for_week(serializer.validated_data["week_start"])
+        lessons = services.generate_lessons_for_week(
+            serializer.validated_data["week_start"], organization=request.user.active_organization
+        )
         return Response(LessonSerializer(lessons, many=True).data)

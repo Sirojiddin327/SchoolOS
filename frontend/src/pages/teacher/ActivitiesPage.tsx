@@ -130,7 +130,7 @@ function ActivityManager({ activity }: { activity: ActivitySummary }) {
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <h3 className="mb-2 section-title">
           Topshirilganlar ({submissions?.length ?? 0})
         </h3>
         {!submissions && <LoadingState label="Yuklanmoqda..." />}

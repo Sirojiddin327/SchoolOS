@@ -209,7 +209,8 @@ export function DashboardLayout({
   // Close the drawer whenever the route changes (covers back/forward nav too,
   // not just clicking a link — NavLink's own onClick wouldn't catch that).
   useEffect(() => {
-    setMobileOpen(false);
+    const timer = window.setTimeout(() => setMobileOpen(false), 0);
+    return () => window.clearTimeout(timer);
   }, [location.pathname]);
 
   return (

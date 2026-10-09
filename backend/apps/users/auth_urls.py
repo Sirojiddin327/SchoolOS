@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.organizations.auth_views import (
+    LogoutView,
     MyMembershipsView,
     OrganizationTokenObtainPairView,
     OrganizationTokenRefreshView,
@@ -11,6 +12,7 @@ from .views import AvatarView, ChangePasswordView, MeView, ParentContactView
 urlpatterns = [
     path("login/", OrganizationTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("refresh/", OrganizationTokenRefreshView.as_view(), name="token_refresh"),
+    path("logout/", LogoutView.as_view(), name="logout"),
     path("me/", MeView.as_view(), name="me"),
     path("my-memberships/", MyMembershipsView.as_view(), name="my-memberships"),
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),

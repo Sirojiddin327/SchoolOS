@@ -34,7 +34,7 @@ export function StudentXpPage() {
       />
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">XP tarixi</h2>
+        <h2 className="mb-3 section-title">XP tarixi</h2>
 
         {isLoading && <LoadingState />}
         {isError && <ErrorState />}

@@ -116,7 +116,7 @@ function TestManager({ test }: { test: TestSummary }) {
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <h3 className="section-title">
           Savollar ({questions?.length ?? 0})
         </h3>
         {questions?.map((question) => (
@@ -126,7 +126,7 @@ function TestManager({ test }: { test: TestSummary }) {
 
       {showResults && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">Natijalar</h3>
+          <h3 className="mb-2 section-title">Natijalar</h3>
           {!results && <LoadingState label="Yuklanmoqda..." />}
           {results && results.length === 0 && <EmptyState title="Hali hech kim topshirmagan" />}
           {results && results.length > 0 && (
