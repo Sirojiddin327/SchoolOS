@@ -284,12 +284,12 @@ export default function App() {
         <Route path="attendance" element={<StudentAttendancePage />} />
         <Route path="tests" element={<StudentTestsPage />} />
         <Route path="tests/:id" element={<ExamGuard><StudentTestTakingPage /></ExamGuard>} />
-        <Route path="remedial/:id" element={<ExamGuard><StudentRemedialPage /></ExamGuard>} />
+        <Route path="remedial/:id" element={<StudentRemedialPage />} />
         <Route path="activities" element={<StudentActivitiesPage />} />
         <Route path="duels" element={<StudentDuelsPage />} />
-        <Route path="duels/:id" element={<ExamGuard><StudentDuelTakingPage /></ExamGuard>} />
+        <Route path="duels/:id" element={<StudentDuelTakingPage />} />
         <Route path="games" element={<StudentGamesPage />} />
-        <Route path="games/:id" element={<ExamGuard><StudentGamePlayPage /></ExamGuard>} />
+        <Route path="games/:id" element={<StudentGamePlayPage />} />
         <Route path="xp" element={<StudentXpPage />} />
         <Route path="leaderboard" element={<StudentLeaderboardPage />} />
         <Route path="achievements" element={<StudentAchievementsPage />} />
