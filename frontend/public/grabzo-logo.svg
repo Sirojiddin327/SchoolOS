@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Grabzo">
+  <rect x="4" y="4" width="92" height="92" rx="27" fill="#6EE768" />
+  <path
+    d="M73 32C66.5 24.5 57 21 46 21C30 21 18 33.5 18 50C18 66.5 30 79 46 79C57 79 66 74 71 67L71 55L48 55L48 45L79 45L79 66C72 77 60 87 46 87C25 87 8 71 8 50C8 29 25 13 46 13C60 13 72 18 80 27Z"
+    fill="#121814"
+    transform="scale(0.85) translate(8,8)"
+  />
+  <g transform="scale(0.85) translate(8,8)">
+    <rect x="69" y="52" width="10" height="25" fill="#121814" />
+    <path d="M60 74L74 88L88 74H79V74H69V74Z" fill="#121814" />
+  </g>
+</svg>

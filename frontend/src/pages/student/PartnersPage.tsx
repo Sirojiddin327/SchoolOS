@@ -53,6 +53,20 @@ const PARTNERS = [
     telegramUrl: "https://t.me/kutubxonaschoolbot",
     telegramLabel: "Ariza topshirish",
   },
+  {
+    id: "grabzo",
+    name: "Dilyorbek Abdujabborov",
+    project: "Grabzo",
+    description:
+      "Zamonaviy media yuklovchi va API monitoring boshqaruv tizimi. YouTube, TikTok, Instagram va boshqa platformalardan media yuklash hamda API holatini kuzatish.",
+    technologies: ["React", "Vite", "Tailwind", "API"],
+    logo: "/grabzo-logo.svg",
+    originalUrl: "https://media.sharqsoft.uz/",
+    utmUrl:
+      "https://media.sharqsoft.uz/?utm_source=schoolos&utm_medium=partner&utm_campaign=partners&utm_content=grabzo",
+    githubUrl: null,
+    isOwn: false,
+  },
 ];
 
 function PartnerCard({ partner }: { partner: typeof PARTNERS[0] }) {
